@@ -38,6 +38,7 @@
 #include <wx/fs_mem.h>
 
 #include "cbcolourmanager.h"
+#include "ccmanager.h"
 #include "debuggermanager.h"
 
 static Manager* s_ManagerInstance = 0;
@@ -158,6 +159,7 @@ void Manager::Shutdown()
 
     ToolsManager::Free();
     TemplateManager::Free();
+    CCManager::Free();
     PluginManager::Free();
     ScriptingManager::Free();
     ProjectManager::Free();
@@ -383,6 +385,11 @@ DebuggerManager* Manager::GetDebuggerManager() const
 ColourManager* Manager::GetColourManager() const
 {
     return ColourManager::Get();
+}
+
+CCManager* Manager::GetCCManager() const
+{
+    return CCManager::Get();
 }
 
 bool Manager::LoadResource(const wxString& file)
