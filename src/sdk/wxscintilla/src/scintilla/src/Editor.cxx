@@ -5779,6 +5779,12 @@ int Editor::KeyDownWithModifiers(int key, int modifiers, bool *consumed) {
 int Editor::KeyDown(int key, bool shift, bool ctrl, bool alt, bool *consumed) {
 	int modifiers = (shift ? SCI_SHIFT : 0) | (ctrl ? SCI_CTRL : 0) |
 	        (alt ? SCI_ALT : 0);
+/* C::B begin */
+	SCNotification scn; memset(&scn, 0x00, sizeof(scn));
+	scn.nmhdr.code = SCN_KEY;
+	scn.ch = key;
+	NotifyParent(scn);
+/* C::B end */
 	return KeyDownWithModifiers(key, modifiers, consumed);
 }
 
