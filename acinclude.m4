@@ -48,8 +48,8 @@ AC_DEFUN([CODEBLOCKS_SETUP_FOR_TARGET],
     darwin=true
 ;;
  *) dnl default to standard linux
-	AC_SUBST(SHARED_FLAGS, "-shared")
-	AC_SUBST(PLUGIN_FLAGS, "-shared -avoid-version")
+    AC_SUBST(SHARED_FLAGS, "-shared")
+    AC_SUBST(PLUGIN_FLAGS, "-shared -avoid-version")
     linux=true
 ;;
 esac
@@ -66,17 +66,40 @@ AC_MSG_CHECKING(whether to enable debugging)
 debug_default="no"
 AC_ARG_ENABLE(debug, [AC_HELP_STRING([--enable-debug], [turn on debugging (default is OFF)])],,
                        enable_debug=$debug_default)
-if test "x$enable_debug" = "xyes"; then
+    if test "x$enable_debug" = "xyes"; then
         CFLAGS="-g -DDEBUG -DCB_AUTOCONF $CFLAGS"
         CXXFLAGS="-g -DDEBUG -DCB_AUTOCONF $CXXFLAGS"
-	LDFLAGS="-Wl,--no-undefined"
-	AC_MSG_RESULT(yes)
-else
-	CFLAGS="-O2 -ffast-math -DCB_AUTOCONF $CFLAGS"
-	CXXFLAGS="-O2 -ffast-math -DCB_AUTOCONF $CXXFLAGS"
-	LDFLAGS="-Wl,--no-undefined"
-	AC_MSG_RESULT(no)
-fi
+        LDFLAGS="-Wl,--no-undefined"
+        AC_MSG_RESULT(yes)
+    else
+        CFLAGS="-O2 -ffast-math -DCB_AUTOCONF $CFLAGS"
+        CXXFLAGS="-O2 -ffast-math -DCB_AUTOCONF $CXXFLAGS"
+        LDFLAGS="-Wl,--no-undefined"
+        AC_MSG_RESULT(no)
+    fi
+])
+
+AC_DEFUN([CB_GCC_VERSION], [
+    GCC_FULL_VERSION=""
+    GCC_MAJOR_VERSION=""
+    GCC_MINOR_VERSION=""
+    GCC_PATCH_VERSION=""
+    if test "x$GCC" = "xyes" ; then
+        AC_CACHE_CHECK([gcc version],[cb_cv_gcc_version],[
+            cb_cv_gcc_version="`$CC -dumpversion`"
+            if test "x$cb_cv_gcc_version" = "x"; then
+                cb_cv_gcc_version=""
+            fi
+        ])
+        GCC_FULL_VERSION=$cb_cv_gcc_version
+        GCC_MAJOR_VERSION=$(echo $GCC_FULL_VERSION | cut -d'.' -f1)
+        GCC_MINOR_VERSION=$(echo $GCC_FULL_VERSION | cut -d'.' -f2)
+        GCC_PATCH_VERSION=$(echo $GCC_FULL_VERSION | cut -d'.' -f3)
+    fi
+    AC_SUBST([GCC_VERSION])
+    AC_SUBST([GCC_MAJOR_VERSION])
+    AC_SUBST([GCC_MINOR_VERSION])
+    AC_SUBST([GCC_PATCH_VERSION])
 ])
 
 dnl check what settings to enable
@@ -165,6 +188,17 @@ AC_ARG_ENABLE(open-files-list, [AC_HELP_STRING([--enable-open-files-list], [buil
                        enable_openfiles=$openfiles_default)
 AM_CONDITIONAL([BUILD_OPENFILESLIST], [test "x$enable_openfiles" = "xyes"])
 if test "x$enable_openfiles" = "xyes"; then
+	AC_MSG_RESULT(yes)
+else
+	AC_MSG_RESULT(no)
+fi
+
+AC_MSG_CHECKING(whether to build the occurrences highlighting plugin)
+occurrenceshighlighting_default="yes"
+AC_ARG_ENABLE(occurrences-highlighting, [AC_HELP_STRING([--enable-occurrences-highlighting], [build the occurrences highlighting plugin (default YES)])],,
+                       enable_occurrenceshighlighting=$occurrenceshighlighting_default)
+AM_CONDITIONAL([BUILD_OCCURRENCESHIGHLIGHTING], [test "x$enable_occurrenceshighlighting" = "xyes"])
+if test "x$enable_occurrenceshighlighting" = "xyes"; then
 	AC_MSG_RESULT(yes)
 else
 	AC_MSG_RESULT(no)

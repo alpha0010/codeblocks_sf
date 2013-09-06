@@ -125,7 +125,7 @@ inline bool GetNextToken(wxString const &str, int pos, Token &token)
         return false;
 
     token.start = -1;
-    bool in_quote = false;
+    bool in_quote = false, in_char = false;
     int open_braces = 0;
     struct BraceType { enum Enum { None, Angle, Square }; };
     BraceType::Enum brace_type = BraceType::None;
@@ -147,6 +147,11 @@ inline bool GetNextToken(wxString const &str, int pos, Token &token)
 
     case _T('"'):
         in_quote = true;
+        token.type = Token::String;
+        token.start = pos;
+        break;
+    case _T('\''):
+        in_char = true;
         token.type = Token::String;
         token.start = pos;
         break;
@@ -178,7 +183,7 @@ inline bool GetNextToken(wxString const &str, int pos, Token &token)
                 token.end = pos;
                 return true;
             }
-            else if ((str[pos] == _T('=') || str[pos] == _T('{') || str[pos] == _T('}')) && !in_quote)
+            else if ((str[pos] == _T('=') || str[pos] == _T('{') || str[pos] == _T('}')) && !in_quote && !in_char)
             {
                 token.end = pos;
                 return true;
@@ -211,6 +216,12 @@ inline bool GetNextToken(wxString const &str, int pos, Token &token)
                         return false;
                     in_quote = true;
                 }
+            }
+            else if (str[pos] == _T('\''))
+            {
+                if (!escape_next)
+                    in_char = !in_char;
+                escape_next = false;
             }
             else if (str[pos] == _T('\\'))
                 escape_next = true;
@@ -803,4 +814,60 @@ bool ParseCDBWatchValue(cb::shared_ptr<GDBWatch> watch, wxString const &value)
     }
 
     return false;
+}
+
+GDBLocalVariable::GDBLocalVariable(wxString const &nameValue, size_t start, size_t length)
+{
+    for (size_t ii = 0; ii < length; ++ii)
+    {
+        if (nameValue[start + ii] == wxT('='))
+        {
+            name = nameValue.substr(start, ii);
+            name.Trim();
+            value = nameValue.substr(start + ii + 1, length - ii - 1);
+            value.Trim(false);
+            error = false;
+            return;
+        }
+    }
+    error = true;
+}
+
+void TokenizeGDBLocals(std::vector<GDBLocalVariable> &results, wxString const &value)
+{
+    size_t count = value.length();
+    size_t start = 0;
+    int curlyBraces = 0;
+    bool inString = false, inChar = false;
+    for (size_t ii = 0; ii < count; ++ii)
+    {
+        wxChar ch = value[ii];
+        switch (ch)
+        {
+        case wxT('\n'):
+            if (!inString && !inChar && curlyBraces == 0)
+            {
+                results.push_back(GDBLocalVariable(value, start, ii - start));
+                start = ii + 1;
+            }
+            break;
+        case wxT('{'):
+            if (!inString && !inChar)
+                curlyBraces++;
+            break;
+        case wxT('}'):
+            if (!inString && !inChar)
+                curlyBraces--;
+            break;
+        case wxT('"'):
+            if (!inChar)
+                inString=!inString;
+            break;
+        case wxT('\''):
+            if (!inString)
+                inChar=!inChar;
+            break;
+        }
+    }
+    results.push_back(GDBLocalVariable(value, start, value.length() - start));
 }

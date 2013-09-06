@@ -37,7 +37,7 @@
 // this is the plugins SDK version number
 // it will change when the SDK interface breaks
 #define PLUGIN_SDK_VERSION_MAJOR   1
-#define PLUGIN_SDK_VERSION_MINOR   18
+#define PLUGIN_SDK_VERSION_MINOR   19
 #define PLUGIN_SDK_VERSION_RELEASE 0
 
 // class decls
@@ -518,6 +518,7 @@ class PLUGIN_EXPORT cbDebuggerPlugin: public cbPlugin
         virtual bool SetWatchValue(cb::shared_ptr<cbWatch> watch, const wxString& value) = 0;
         virtual void ExpandWatch(cb::shared_ptr<cbWatch> watch) = 0;
         virtual void CollapseWatch(cb::shared_ptr<cbWatch> watch) = 0;
+        virtual void UpdateWatch(cb::shared_ptr<cbWatch> watch) = 0;
 
         struct WatchesDisabledMenuItems
         {

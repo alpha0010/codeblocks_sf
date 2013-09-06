@@ -1,6 +1,6 @@
 SUBDIRS = resources
 
-INCLUDES = $(WX_CXXFLAGS) \
+AM_CPPFLAGS = $(WX_CXXFLAGS) \
 		-I$(top_srcdir)/src/include \
 		-I$(top_srcdir)/src/sdk/wxscintilla/include
 
@@ -20,5 +20,4 @@ noinst_HEADERS = symtabconfig.h \
 			symtabexec.h \
 			symtab.h
 
-EXTRA_DIST = symtab.cbp \
-			symtab-unix.cbp
+EXTRA_DIST = $(srcdir)/*.cbp

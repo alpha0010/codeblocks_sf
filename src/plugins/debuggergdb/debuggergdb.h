@@ -95,6 +95,7 @@ class DebuggerGDB : public cbDebuggerPlugin
         bool SetWatchValue(cb::shared_ptr<cbWatch> watch, const wxString &value);
         void ExpandWatch(cb::shared_ptr<cbWatch> watch);
         void CollapseWatch(cb::shared_ptr<cbWatch> watch);
+        void UpdateWatch(cb::shared_ptr<cbWatch> watch);
 
         void AddWatchNoUpdate(const cb::shared_ptr<GDBWatch> &watch);
 
@@ -207,6 +208,7 @@ class DebuggerGDB : public cbDebuggerPlugin
         bool m_TemporaryBreak;
 
         WatchesContainer m_watches;
+        cb::shared_ptr<GDBWatch> m_localsWatch, m_funcArgsWatch;
         wxString m_watchToDereferenceSymbol;
         wxObject *m_watchToDereferenceProperty;
 

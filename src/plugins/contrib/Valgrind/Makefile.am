@@ -1,6 +1,6 @@
 SUBDIRS = resources
 
-INCLUDES = $(WX_CXXFLAGS) \
+AM_CPPFLAGS = $(WX_CXXFLAGS) \
 		-I$(top_srcdir)/src/include \
 		-I$(top_srcdir)/src/sdk/wxscintilla/include
 
@@ -21,4 +21,5 @@ noinst_HEADERS = Valgrind.h \
 			valgrind_config.h
 
 EXTRA_DIST = $(srcdir)/*.cbp \
+		$(srcdir)/update* \
 		wxsmith/valgrind_config_panel.wxs

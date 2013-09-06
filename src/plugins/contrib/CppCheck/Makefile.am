@@ -1,6 +1,6 @@
 SUBDIRS = resources
 
-INCLUDES = $(WX_CXXFLAGS) \
+AM_CPPFLAGS = $(WX_CXXFLAGS) \
 		-I$(top_srcdir)/src/include \
 		-I$(top_srcdir)/src/sdk/wxscintilla/include
 
@@ -20,4 +20,5 @@ noinst_HEADERS = CppCheck.h \
             CppCheckListLog.h \
             ConfigPanel.h
 
-EXTRA_DIST = $(srcdir)/*.cbp
+EXTRA_DIST = $(srcdir)/*.cbp \
+		wxsmith

@@ -1,4 +1,4 @@
-INCLUDES = $(WX_CXXFLAGS) \
+AM_CPPFLAGS = $(WX_CXXFLAGS) \
 		-I$(top_srcdir)/src/include \
 		-I$(top_srcdir)/src/include/scripting/include \
 		-I$(top_srcdir)/src/include/scripting/sqplus \
@@ -24,8 +24,7 @@ noinst_HEADERS = envvars.h \
                  envvars_common.h \
                  envvars_prjoptdlg.h
 
-EXTRA_DIST = envvars.cbp \
-             envvars-unix.cbp \
+EXTRA_DIST = $(srcdir)/*.cbp \
              envvars.xrc \
              project_settings.xrc \
              manifest.xml

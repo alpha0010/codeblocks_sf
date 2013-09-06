@@ -1,6 +1,6 @@
 SUBDIRS = resources
 
-INCLUDES = $(WX_CXXFLAGS) \
+AM_CPPFLAGS = $(WX_CXXFLAGS) \
 		$(WX_GTK2_CFLAGS) \
 		$(WX_X11_CFLAGS) \
 		-I$(top_srcdir)/src/include \
@@ -128,12 +128,10 @@ noinst_HEADERS =  	codesnippets.h \
 
 man_MANS = codesnippets.1
 
-EXTRA_DIST = 	codesnippets.cbp \
-		codesnippets-unix.cbp \
+EXTRA_DIST = 	$(srcdir)/*.cbp \
 		generic.rc \
 		generic.Manifest \
-		update.bat \
-		update \
+		$(srcdir)/update* \
 		readme.html \
 		license.txt \
 		manifest.xml \

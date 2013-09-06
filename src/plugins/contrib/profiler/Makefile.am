@@ -1,6 +1,6 @@
 SUBDIRS = resources
 
-INCLUDES = $(WX_CXXFLAGS) \
+AM_CPPFLAGS = $(WX_CXXFLAGS) \
 		-I$(top_srcdir)/src/include \
 		-I$(top_srcdir)/src/sdk/wxscintilla/include
 
@@ -20,5 +20,4 @@ noinst_HEADERS = cbprofilerconfig.h \
 			cbprofilerexec.h \
 			cbprofiler.h
 
-EXTRA_DIST = cbprofiler.cbp \
-		cbprofiler.unix.cbp
+EXTRA_DIST = $(srcdir)/*.cbp

@@ -24,6 +24,7 @@
 
 #include <numeric>
 #include <map>
+#include <algorithm>
 
 #include <wx/propgrid/propgrid.h>
 
@@ -43,6 +44,8 @@ namespace
     const long idMenuDelete = wxNewId();
     const long idMenuDeleteAll = wxNewId();
     const long idMenuAddDataBreak = wxNewId();
+    const long idMenuAutoUpdate = wxNewId();
+    const long idMenuUpdate = wxNewId();
 }
 
 BEGIN_EVENT_TABLE(WatchesDlg, wxPanel)
@@ -61,11 +64,25 @@ BEGIN_EVENT_TABLE(WatchesDlg, wxPanel)
     EVT_MENU(idMenuDelete, WatchesDlg::OnMenuDelete)
     EVT_MENU(idMenuDeleteAll, WatchesDlg::OnMenuDeleteAll)
     EVT_MENU(idMenuAddDataBreak, WatchesDlg::OnMenuAddDataBreak)
+    EVT_MENU(idMenuAutoUpdate, WatchesDlg::OnMenuAutoUpdate)
+    EVT_MENU(idMenuUpdate, WatchesDlg::OnMenuUpdate)
 END_EVENT_TABLE()
 
 #if wxCHECK_VERSION(2,9,0)
 typedef wxString wxPG_CONST_WXCHAR_PTR;
 #endif
+
+struct WatchesDlg::WatchItemPredicate
+{
+    WatchItemPredicate(cb::shared_ptr<cbWatch> watch) : m_watch(watch) {}
+
+    bool operator()(const WatchItem& item) const
+    {
+        return item.watch == m_watch;
+    }
+private:
+    cb::shared_ptr<cbWatch> m_watch;
+};
 
 class cbTextCtrlAndButtonTooltipEditor : public wxPGTextCtrlAndButtonEditor
 {
@@ -455,13 +472,13 @@ inline void SetValue(WatchesProperty *prop)
 void WatchesDlg::UpdateWatches()
 {
     for (WatchItems::iterator it = m_watches.begin(); it != m_watches.end(); ++it)
-        UpdateWatch(m_grid, it->property, it->watch, false);
+        UpdateWatch(m_grid, it->property, it->watch, it->readonly);
     m_grid->Refresh();
 }
 
 void WatchesDlg::AddWatch(cb::shared_ptr<cbWatch> watch)
 {
-    wxPGProperty *last_prop = m_grid->GetLastItem(wxPG_ITERATE_DEFAULT);
+    WatchesProperty *last_prop = static_cast<WatchesProperty*>(m_grid->GetLastItem(wxPG_ITERATE_DEFAULT));
 
     WatchItem item;
     wxString symbol, value;
@@ -484,13 +501,43 @@ void WatchesDlg::AddWatch(cb::shared_ptr<cbWatch> watch)
     }
     else
     {
-        item.property = m_grid->Append(new WatchesProperty(symbol, value, watch, false));
+        item.property = static_cast<WatchesProperty*>(m_grid->Append(new WatchesProperty(symbol, value, watch, false)));
     }
 
     item.property->SetExpanded(watch->IsExpanded());
     item.watch = watch;
     m_watches.push_back(item);
     m_grid->Refresh();
+}
+
+void WatchesDlg::AddSpecialWatch(cb::shared_ptr<cbWatch> watch, bool readonly)
+{
+    WatchItems::iterator it = std::find_if(m_watches.begin(), m_watches.end(), WatchItemPredicate(watch));
+    if (it != m_watches.end())
+        return;
+    wxPGProperty *first_prop = m_grid->wxPropertyGridInterface::GetFirst(wxPG_ITERATE_ALL);
+
+    WatchItem item;
+    wxString symbol, value;
+    watch->GetSymbol(symbol);
+
+    item.property = static_cast<WatchesProperty*>(m_grid->Insert(first_prop, new WatchesProperty(symbol, value, watch, true)));
+
+    item.property->SetExpanded(watch->IsExpanded());
+    item.watch = watch;
+    item.readonly = readonly;
+    item.special = true;
+    m_watches.push_back(item);
+    m_grid->Refresh();
+}
+
+void WatchesDlg::RemoveWatch(cb::shared_ptr<cbWatch> watch)
+{
+    WatchItems::iterator it = std::find_if(m_watches.begin(), m_watches.end(), WatchItemPredicate(watch));
+    if (it != m_watches.end())
+    {
+        DeleteProperty(*it->property);
+    }
 }
 
 void WatchesDlg::OnExpand(wxPropertyGridEvent &event)
@@ -631,9 +678,14 @@ void WatchesDlg::OnKeyDown(wxKeyEvent &event)
         case WXK_INSERT:
             {
                 cb::shared_ptr<cbWatch> watch = watches_prop->GetWatch();
-                cbDebuggerPlugin *plugin = Manager::Get()->GetDebuggerManager()->GetDebuggerHavingWatch(watch);
-                if (plugin && plugin->SupportsFeature(cbDebuggerFeature::Watches))
-                    m_grid->BeginLabelEdit(0);
+                WatchItems::const_iterator it = std::find_if(m_watches.begin(), m_watches.end(),
+                                                             WatchItemPredicate(watch));
+                if (!(it != m_watches.end() && it->special))
+                {
+                    cbDebuggerPlugin *plugin = Manager::Get()->GetDebuggerManager()->GetDebuggerHavingWatch(watch);
+                    if (plugin && plugin->SupportsFeature(cbDebuggerFeature::Watches))
+                        m_grid->BeginLabelEdit(0);
+                }
             }
             break;
         default:
@@ -649,6 +701,11 @@ void WatchesDlg::OnPropertyRightClick(wxPropertyGridEvent &event)
         wxMenu m;
         m.Append(idMenuRename, _("Rename"), _("Rename the watch"));
         m.Append(idMenuAddDataBreak, _("Add Data breakpoint"), _("Add Data breakpoing"));
+        m.AppendSeparator();
+        m.AppendCheckItem(idMenuAutoUpdate, _("Auto update"),
+                          _("Flag which controls if this watch should be auto updated."));
+        m.Append(idMenuUpdate, _("Update"), _("Manually update the selected watch."));
+        m.AppendSeparator();
         m.Append(idMenuProperties, _("Properties"), _("Show the properties for the watch"));
         m.Append(idMenuDelete, _("Delete"), _("Delete the currently selected watch"));
         m.Append(idMenuDeleteAll, _("Delete All"), _("Delete all watches"));
@@ -659,21 +716,34 @@ void WatchesDlg::OnPropertyRightClick(wxPropertyGridEvent &event)
         if (watch)
         {
             int disabled = cbDebuggerPlugin::WatchesDisabledMenuItems::Empty;
-
             DebuggerManager *dbgManager = Manager::Get()->GetDebuggerManager();
-
+            cb::shared_ptr<cbWatch> rootWatch = cbGetRootWatch(watch);
             cbDebuggerPlugin *plugin = dbgManager->GetDebuggerHavingWatch(watch);
-            if (plugin && plugin->SupportsFeature(cbDebuggerFeature::Watches))
-                plugin->OnWatchesContextMenu(m, *watch, event.GetProperty(), disabled);
-            else
+
+            WatchItems::const_iterator itItem = std::find_if(m_watches.begin(), m_watches.end(),
+                                                             WatchItemPredicate(rootWatch));
+            if (itItem != m_watches.end() && itItem->special)
             {
                 disabled = cbDebuggerPlugin::WatchesDisabledMenuItems::Rename |
                            cbDebuggerPlugin::WatchesDisabledMenuItems::Properties |
-                           cbDebuggerPlugin::WatchesDisabledMenuItems::Delete;
+                           cbDebuggerPlugin::WatchesDisabledMenuItems::Delete |
+                           cbDebuggerPlugin::WatchesDisabledMenuItems::AddDataBreak;
             }
+            else
+            {
 
-            if (plugin != dbgManager->GetActiveDebugger())
-                disabled = cbDebuggerPlugin::WatchesDisabledMenuItems::Properties;
+                if (plugin && plugin->SupportsFeature(cbDebuggerFeature::Watches))
+                    plugin->OnWatchesContextMenu(m, *watch, event.GetProperty(), disabled);
+                else
+                {
+                    disabled = cbDebuggerPlugin::WatchesDisabledMenuItems::Rename |
+                               cbDebuggerPlugin::WatchesDisabledMenuItems::Properties |
+                               cbDebuggerPlugin::WatchesDisabledMenuItems::Delete;
+                }
+
+                if (plugin != dbgManager->GetActiveDebugger())
+                    disabled = cbDebuggerPlugin::WatchesDisabledMenuItems::Properties;
+            }
 
             if (disabled & cbDebuggerPlugin::WatchesDisabledMenuItems::Rename)
                 m.Enable(idMenuRename, false);
@@ -685,6 +755,18 @@ void WatchesDlg::OnPropertyRightClick(wxPropertyGridEvent &event)
                 m.Enable(idMenuDeleteAll, false);
             if (disabled & cbDebuggerPlugin::WatchesDisabledMenuItems::AddDataBreak)
                 m.Enable(idMenuAddDataBreak, false);
+
+            if (rootWatch != watch)
+            {
+                m.Enable(idMenuAutoUpdate, false);
+                m.Enable(idMenuUpdate, false);
+            }
+            else
+            {
+                m.Check(idMenuAutoUpdate, watch->IsAutoUpdateEnabled());
+                if (plugin != dbgManager->GetActiveDebugger())
+                    m.Enable(idMenuUpdate, false);
+            }
         }
         PopupMenu(&m);
     }
@@ -734,13 +816,21 @@ void WatchesDlg::OnMenuDelete(cb_unused wxCommandEvent &event)
 
 void WatchesDlg::OnMenuDeleteAll(cb_unused wxCommandEvent &event)
 {
+    WatchItems specialWatches;
+
     for (WatchItems::iterator it = m_watches.begin(); it != m_watches.end(); ++it)
     {
-        cbDebuggerPlugin *debugger = Manager::Get()->GetDebuggerManager()->GetDebuggerHavingWatch(it->watch);
-        debugger->DeleteWatch(it->watch);
-        m_grid->DeleteProperty(it->property);
+        if (it->special)
+            specialWatches.push_back(*it);
+        else
+        {
+            cbDebuggerPlugin *debugger = Manager::Get()->GetDebuggerManager()->GetDebuggerHavingWatch(it->watch);
+            debugger->DeleteWatch(it->watch);
+            m_grid->DeleteProperty(it->property);
+        }
     }
-    m_watches.clear();
+
+    m_watches.swap(specialWatches);
 }
 
 void WatchesDlg::OnMenuAddDataBreak(cb_unused wxCommandEvent &event)
@@ -759,6 +849,32 @@ void WatchesDlg::OnMenuAddDataBreak(cb_unused wxCommandEvent &event)
         if (plugin->AddDataBreakpoint(expression))
             Manager::Get()->GetDebuggerManager()->GetBreakpointDialog()->Reload();
     }
+}
+
+void WatchesDlg::OnMenuAutoUpdate(cb_unused wxCommandEvent &event)
+{
+    WatchesProperty *selected = static_cast<WatchesProperty*>(m_grid->GetSelection());
+    if (!selected)
+        return;
+    cb::shared_ptr<cbWatch> watch = selected->GetWatch();
+    if (!watch)
+        return;
+    watch->AutoUpdate(!watch->IsAutoUpdateEnabled());
+}
+
+// Must not be called on non-active debuggers!
+void WatchesDlg::OnMenuUpdate(cb_unused wxCommandEvent &event)
+{
+    WatchesProperty *selected = static_cast<WatchesProperty*>(m_grid->GetSelection());
+    if (!selected)
+        return;
+    cb::shared_ptr<cbWatch> watch = selected->GetWatch();
+    if (!watch)
+        return;
+    watch = cbGetRootWatch(watch);
+    cbDebuggerPlugin *plugin = Manager::Get()->GetDebuggerManager()->GetActiveDebugger();
+    if (plugin)
+        plugin->UpdateWatch(watch);
 }
 
 void WatchesDlg::RenameWatch(wxObject *prop, const wxString &newSymbol)

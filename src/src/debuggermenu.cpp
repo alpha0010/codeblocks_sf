@@ -163,10 +163,14 @@ struct CommonItem : cbDebuggerWindowMenuItem
 
     void OnClick(bool enable)
     {
-        DebuggerManager *manager = Manager::Get()->GetDebuggerManager();
         CodeBlocksDockEvent evt(enable ? cbEVT_SHOW_DOCK_WINDOW : cbEVT_HIDE_DOCK_WINDOW);
-        evt.pWindow = (manager->*(m_getWindowFunc))()->GetWindow();
-        Manager::Get()->ProcessEvent(evt);
+        DebuggerManager *manager = Manager::Get()->GetDebuggerManager();
+        DlgType *dialog = (manager->*(m_getWindowFunc))();
+        if (dialog)
+        {
+            evt.pWindow = dialog->GetWindow();
+            Manager::Get()->ProcessEvent(evt);
+        }
 
         if (enable && manager->GetActiveDebugger())
             manager->GetActiveDebugger()->RequestUpdate(m_requestUpdate);
@@ -177,8 +181,8 @@ struct CommonItem : cbDebuggerWindowMenuItem
     }
     virtual bool IsChecked()
     {
-        DebuggerManager *manager = Manager::Get()->GetDebuggerManager();
-        return IsWindowReallyShown((manager->*(m_getWindowFunc))()->GetWindow());
+        DlgType *dialog = (Manager::Get()->GetDebuggerManager()->*(m_getWindowFunc))();
+        return dialog && IsWindowReallyShown(dialog->GetWindow());
     }
 private:
     cbDebuggerFeature::Flags m_enableFeature;
@@ -203,16 +207,21 @@ void DebuggerMenuHandler::RegisterDefaultWindowItems()
         virtual void OnClick(bool enable)
         {
             CodeBlocksDockEvent evt(enable ? cbEVT_SHOW_DOCK_WINDOW : cbEVT_HIDE_DOCK_WINDOW);
-            evt.pWindow = Manager::Get()->GetDebuggerManager()->GetBreakpointDialog()->GetWindow();
-            Manager::Get()->ProcessEvent(evt);
+            cbBreakpointsDlg *dialog = Manager::Get()->GetDebuggerManager()->GetBreakpointDialog();
+            if (dialog)
+            {
+                evt.pWindow = dialog->GetWindow();
+                Manager::Get()->ProcessEvent(evt);
+            }
         }
         virtual bool IsEnabled()
         {
-            return true;
+            return Manager::Get()->GetDebuggerManager()->GetBreakpointDialog();
         }
         virtual bool IsChecked()
         {
-            return IsWindowReallyShown(Manager::Get()->GetDebuggerManager()->GetBreakpointDialog()->GetWindow());
+            cbBreakpointsDlg *dialog = Manager::Get()->GetDebuggerManager()->GetBreakpointDialog();
+            return dialog && IsWindowReallyShown(dialog->GetWindow());
         }
     };
     struct Watches : CommonItem<cbWatchesDlg>
@@ -223,7 +232,7 @@ void DebuggerMenuHandler::RegisterDefaultWindowItems()
         }
         virtual bool IsEnabled()
         {
-            return true;
+            return Manager::Get()->GetDebuggerManager()->GetWatchesDialog();
         }
     };
 
@@ -454,7 +463,7 @@ void DebuggerMenuHandler::OnUpdateUI(wxUpdateUIEvent& event)
         otherPlugin = true;
     }
 
-    if (mbar)
+    if (mbar && Manager::Get()->GetDebuggerManager()->HasMenu())
     {
         bool hasBreaks = Support(m_activeDebugger, cbDebuggerFeature::Breakpoints);
 
@@ -720,79 +729,6 @@ void DebuggerMenuHandler::OnAddWatch(cb_unused wxCommandEvent& event)
             }
         }
     }
-}
-
-void DebuggerMenuHandler::OnBacktrace(wxCommandEvent& event)
-{
-    DebuggerManager *manager = Manager::Get()->GetDebuggerManager();
-    CodeBlocksDockEvent evt(event.IsChecked() ? cbEVT_SHOW_DOCK_WINDOW : cbEVT_HIDE_DOCK_WINDOW);
-    evt.pWindow = manager->GetBacktraceDialog()->GetWindow();
-    Manager::Get()->ProcessEvent(evt);
-
-    if (event.IsChecked() && manager->GetActiveDebugger())
-        manager->GetActiveDebugger()->RequestUpdate(cbDebuggerPlugin::Backtrace);
-}
-
-void DebuggerMenuHandler::OnBreakpoints(wxCommandEvent& event)
-{
-    CodeBlocksDockEvent evt(event.IsChecked() ? cbEVT_SHOW_DOCK_WINDOW : cbEVT_HIDE_DOCK_WINDOW);
-    evt.pWindow = Manager::Get()->GetDebuggerManager()->GetBreakpointDialog()->GetWindow();
-    Manager::Get()->ProcessEvent(evt);
-}
-
-void DebuggerMenuHandler::OnCPURegisters(wxCommandEvent& event)
-{
-    DebuggerManager *manager = Manager::Get()->GetDebuggerManager();
-    CodeBlocksDockEvent evt(event.IsChecked() ? cbEVT_SHOW_DOCK_WINDOW : cbEVT_HIDE_DOCK_WINDOW);
-    evt.pWindow = manager->GetCPURegistersDialog()->GetWindow();
-    Manager::Get()->ProcessEvent(evt);
-
-    if (event.IsChecked() && manager->GetActiveDebugger())
-        manager->GetActiveDebugger()->RequestUpdate(cbDebuggerPlugin::CPURegisters);
-}
-
-void DebuggerMenuHandler::OnDisassembly(wxCommandEvent& event)
-{
-    DebuggerManager *manager = Manager::Get()->GetDebuggerManager();
-    CodeBlocksDockEvent evt(event.IsChecked() ? cbEVT_SHOW_DOCK_WINDOW : cbEVT_HIDE_DOCK_WINDOW);
-    evt.pWindow = manager->GetDisassemblyDialog()->GetWindow();
-    Manager::Get()->ProcessEvent(evt);
-
-    if (event.IsChecked() && manager->GetActiveDebugger())
-        manager->GetActiveDebugger()->RequestUpdate(cbDebuggerPlugin::Disassembly);
-}
-
-void DebuggerMenuHandler::OnExamineMemory(wxCommandEvent& event)
-{
-    DebuggerManager *manager = Manager::Get()->GetDebuggerManager();
-    CodeBlocksDockEvent evt(event.IsChecked() ? cbEVT_SHOW_DOCK_WINDOW : cbEVT_HIDE_DOCK_WINDOW);
-    evt.pWindow = manager->GetExamineMemoryDialog()->GetWindow();
-    Manager::Get()->ProcessEvent(evt);
-
-    if (event.IsChecked() && manager->GetActiveDebugger())
-        manager->GetActiveDebugger()->RequestUpdate(cbDebuggerPlugin::ExamineMemory);
-}
-
-void DebuggerMenuHandler::OnThreads(wxCommandEvent& event)
-{
-    DebuggerManager *manager = Manager::Get()->GetDebuggerManager();
-    CodeBlocksDockEvent evt(event.IsChecked() ? cbEVT_SHOW_DOCK_WINDOW : cbEVT_HIDE_DOCK_WINDOW);
-    evt.pWindow = manager->GetThreadsDialog()->GetWindow();
-    Manager::Get()->ProcessEvent(evt);
-
-    if (event.IsChecked() && manager->GetActiveDebugger())
-        manager->GetActiveDebugger()->RequestUpdate(cbDebuggerPlugin::Threads);
-}
-
-void DebuggerMenuHandler::OnWatches(wxCommandEvent& event)
-{
-    CodeBlocksDockEvent evt(event.IsChecked() ? cbEVT_SHOW_DOCK_WINDOW : cbEVT_HIDE_DOCK_WINDOW);
-    evt.pWindow = Manager::Get()->GetDebuggerManager()->GetWatchesDialog()->GetWindow();
-    Manager::Get()->ProcessEvent(evt);
-
-    cbDebuggerPlugin *activeDebugger = Manager::Get()->GetDebuggerManager()->GetActiveDebugger();
-    if (activeDebugger && event.IsChecked())
-        activeDebugger->RequestUpdate(cbDebuggerPlugin::Watches);
 }
 
 void DebuggerMenuHandler::OnActiveDebuggerClick(wxCommandEvent& event)

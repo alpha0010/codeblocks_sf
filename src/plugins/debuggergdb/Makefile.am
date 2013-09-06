@@ -1,6 +1,6 @@
 SUBDIRS = resources
 
-INCLUDES = $(WX_CXXFLAGS) \
+AM_CPPFLAGS = $(WX_CXXFLAGS) \
 		-I$(top_srcdir)/src/include \
 		-I$(top_srcdir)/src/sdk/wxscintilla/include \
 		-I$(top_srcdir)/src/include/scripting/include \
@@ -49,6 +49,5 @@ EXTRA_DIST = debuggergdb_test_defs.cpp \
 		debuggergdb_test_main.cpp \
 		debuggergdb_test_parser.cpp \
 		debuggergdb_test_parser_cdb.cpp \
-		debuggergdb_test-unix.cbp \
-		debuggergdb_test.cbp
+		$(srcdir)/*.cbp
 

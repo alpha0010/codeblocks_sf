@@ -44,7 +44,8 @@
 cbWatch::cbWatch() :
     m_changed(true),
     m_removed(false),
-    m_expanded(false)
+    m_expanded(false),
+    m_autoUpdate(true)
 {
 }
 
@@ -188,6 +189,16 @@ bool cbWatch::IsExpanded() const
 void cbWatch::Expand(bool expand)
 {
     m_expanded = expand;
+}
+
+bool cbWatch::IsAutoUpdateEnabled() const
+{
+    return m_autoUpdate;
+}
+
+void cbWatch::AutoUpdate(bool enabled)
+{
+    m_autoUpdate = enabled;
 }
 
 cb::shared_ptr<cbWatch> DLLIMPORT cbGetRootWatch(cb::shared_ptr<cbWatch> watch)
@@ -887,6 +898,14 @@ wxMenu* DebuggerManager::GetMenu()
     return menu;
 }
 
+bool DebuggerManager::HasMenu() const
+{
+    wxMenuBar *menuBar = Manager::Get()->GetAppFrame()->GetMenuBar();
+    cbAssert(menuBar);
+    int menu_pos = menuBar->FindMenu(_("&Debug"));
+    return menu_pos != wxNOT_FOUND;
+}
+
 void DebuggerManager::BuildContextMenu(wxMenu &menu, const wxString& word_at_caret, bool is_running)
 {
     m_menuHandler->BuildContextMenu(menu, word_at_caret, is_running);
@@ -1215,7 +1234,8 @@ void DebuggerManager::FindTargetsDebugger()
         compiler = CompilerFactory::GetCompiler(target->GetCompilerID());
         if (!compiler)
         {
-            log->LogError(_("Current target doesn't have valid compiler!"));
+            log->LogError(wxString::Format(_("Current target '%s' doesn't have valid compiler!"),
+                                           target->GetTitle().c_str()));
             m_menuHandler->MarkActiveTargetAsValid(false);
             return;
         }
@@ -1232,7 +1252,8 @@ void DebuggerManager::FindTargetsDebugger()
 
     if (name.empty() || config.empty())
     {
-        log->LogError(_("Current compiler doesn't have correctly defined debugger!"));
+        log->LogError(wxString::Format(_("Current compiler '%s' doesn't have correctly defined debugger!"),
+                                       compiler->GetName().c_str()));
         m_menuHandler->MarkActiveTargetAsValid(false);
         return;
     }
@@ -1261,8 +1282,10 @@ void DebuggerManager::FindTargetsDebugger()
         }
     }
 
-    log->LogError(wxString::Format(_("Can't find the debugger config: '%s:%s' for the current target!"),
-                                   name.c_str(), config.c_str()));
+    wxString targetTitle(target ? target->GetTitle() : wxT("<nullptr>"));
+    log->LogError(wxString::Format(_("Can't find the debugger config: '%s:%s' for the current target '%s'!"),
+                                   name.c_str(), config.c_str(),
+                                   targetTitle.c_str()));
     m_menuHandler->MarkActiveTargetAsValid(false);
 }
 

@@ -1,6 +1,6 @@
 SUBDIRS = wxspellchecker
 
-INCLUDES = $(WX_CXXFLAGS) \
+AM_CPPFLAGS = $(WX_CXXFLAGS) \
 		$(CB_HUNSPELL_CFLAGS) \
 		-I$(srcdir)/wxspellchecker/include \
 		-I$(top_srcdir)/src/include \
@@ -50,7 +50,7 @@ EXTRA_DIST = 	$(srcdir)/*.cbp \
 		hunspell \
 		dictionaries \
 		manifest.xml \
-		update
+		$(srcdir)/update*
 
 pkgdata_DATA = SpellChecker.zip
 

@@ -1,6 +1,6 @@
 SUBDIRS = images
 
-INCLUDES = $(WX_CXXFLAGS) \
+AM_CPPFLAGS = $(WX_CXXFLAGS) \
 		-I$(top_srcdir)/src/include \
 		-I$(top_srcdir)/src/sdk/wxscintilla/include
 
@@ -32,8 +32,7 @@ EXTRA_DIST = $(srcdir)/*.cbp \
 		manifest.xml \
 		ChangeLog.txt \
 		DoxyBlocks.rc \
-		update \
-		update.bat \
+		$(srcdir)/update* \
 		$(srcdir)/images/*.png \
 		$(srcdir)/images/16x16/*.png
 

@@ -30,6 +30,10 @@ if BUILD_OPENFILESLIST
 MAYBE_OPENFILESLIST=openfileslist
 endif
 
+if BUILD_OCCURRENCESHIGHLIGHTING
+MAYBE_OCCURRENCESHIGHLIGHTING=occurrenceshighlighting
+endif
+
 if BUILD_PROJECTSIMPORTER
 MAYBE_PROJECTSIMPORTER=projectsimporter
 endif
@@ -60,6 +64,7 @@ SUBDIRS=$(MAYBE_ASTYLE) \
 		$(MAYBE_SCRIPTEDWIZARD) \
 		$(MAYBE_PROJECTSIMPORTER) \
 		$(MAYBE_OPENFILESLIST) \
+		$(MAYBE_OCCURRENCESHIGHLIGHTING) \
 		$(MAYBE_TODO) \
 		$(MAYBE_ABBREVIATIONS) \
 		$(MAYBE_MANIFEST) \
@@ -75,8 +80,14 @@ DIST_SUBDIRS = abbreviations \
 		debuggergdb \
 		defaultmimehandler \
 		openfileslist \
+		occurrenceshighlighting \
 		projectsimporter \
 		scriptedwizard \
 		todo \
 		xpmanifest \
 		contrib
+
+EXTRA_DIST = headerguard \
+		loghacker \
+		modpoller \
+		tidycmt

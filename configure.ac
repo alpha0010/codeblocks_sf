@@ -228,6 +228,9 @@ case $WX_BASENAME in
     ;;
 esac
 
+CB_GCC_VERSION
+AM_CONDITIONAL([HAVE_GCC48], [test $GCC_MAJOR_VERSION -gt 4 || test $GCC_MAJOR_VERSION -eq 4 && test $GCC_MINOR_VERSION -ge 8])
+
 AC_MSG_CHECKING([for wxWidgets >= 2.9.0])
 AM_CONDITIONAL([HAVE_WX29], [test $wx_config_major_version -gt 2 || test $wx_config_major_version -eq 2 && test $wx_config_minor_version -ge 9])
 
@@ -243,7 +246,14 @@ else
     WXPROPGRID_DIR=wxpropgrid
     WXPROPGRID_LIB=wxpropgrid/libwxpropgrid.la
     WXPROPGRID_INCLUDE=-I\$\(top_srcdir\)/src/sdk/wxpropgrid/include
+
+    if test "x$HAVE_GCC48_TRUE" = "x" ; then
+	gcc48_flags="-Wno-unused-local-typedefs"
+        AC_MSG_NOTICE([setting additional flags for gcc $GCC_FULL_VERSION]: $gcc48_flags)
+        CXXFLAGS="$gcc48_flags $CXXFLAGS"
+    fi
 fi
+
 
 AC_SUBST(WX_GTK2_CFLAGS)
 AC_SUBST(WX_GTK2_LIBS)
@@ -343,6 +353,8 @@ AC_CONFIG_FILES([Makefile
 	src/plugins/defaultmimehandler/Makefile
 	src/plugins/defaultmimehandler/resources/Makefile
 	src/plugins/openfileslist/Makefile
+	src/plugins/occurrenceshighlighting/Makefile
+	src/plugins/occurrenceshighlighting/resources/Makefile
 	src/plugins/projectsimporter/Makefile
 	src/plugins/projectsimporter/resources/Makefile
 	src/plugins/scriptedwizard/Makefile

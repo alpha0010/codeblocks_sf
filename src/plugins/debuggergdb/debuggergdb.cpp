@@ -290,6 +290,22 @@ cbConfigurationPanel* DebuggerGDB::GetProjectConfigurationPanel(wxWindow* parent
 
 void DebuggerGDB::OnConfigurationChange(cb_unused bool isActive)
 {
+    DebuggerConfiguration &config = GetActiveConfigEx();
+    bool locals = config.GetFlag(DebuggerConfiguration::WatchLocals);
+    bool funcArgs = config.GetFlag(DebuggerConfiguration::WatchFuncArgs);
+
+    cbWatchesDlg *watchesDialog = Manager::Get()->GetDebuggerManager()->GetWatchesDialog();
+
+    if (!locals && m_localsWatch)
+    {
+        watchesDialog->RemoveWatch(m_localsWatch);
+        m_localsWatch = cb::shared_ptr<GDBWatch>();
+    }
+    if (!funcArgs && m_funcArgsWatch)
+    {
+        watchesDialog->RemoveWatch(m_funcArgsWatch);
+        m_funcArgsWatch = cb::shared_ptr<GDBWatch>();
+    }
 }
 
 wxArrayString& DebuggerGDB::GetSearchDirs(cbProject* prj)
@@ -460,9 +476,36 @@ void DebuggerGDB::DoWatches()
         return;
 
     DebuggerConfiguration &config = GetActiveConfigEx();
-    m_State.GetDriver()->UpdateWatches(config.GetFlag(DebuggerConfiguration::WatchLocals),
-                                       config.GetFlag(DebuggerConfiguration::WatchFuncArgs),
-                                       m_watches);
+
+    bool locals = config.GetFlag(DebuggerConfiguration::WatchLocals);
+    bool funcArgs = config.GetFlag(DebuggerConfiguration::WatchFuncArgs);
+
+
+    if (locals)
+    {
+        if (m_localsWatch == nullptr)
+        {
+            m_localsWatch = cb::shared_ptr<GDBWatch>(new GDBWatch(wxT("Locals")));
+            m_localsWatch->Expand(true);
+            m_localsWatch->MarkAsChanged(false);
+            cbWatchesDlg *watchesDialog = Manager::Get()->GetDebuggerManager()->GetWatchesDialog();
+            watchesDialog->AddSpecialWatch(m_localsWatch, true);
+        }
+    }
+
+    if (funcArgs)
+    {
+        if (m_funcArgsWatch == nullptr)
+        {
+            m_funcArgsWatch = cb::shared_ptr<GDBWatch>(new GDBWatch(wxT("Function arguments")));
+            m_funcArgsWatch->Expand(true);
+            m_funcArgsWatch->MarkAsChanged(false);
+            cbWatchesDlg *watchesDialog = Manager::Get()->GetDebuggerManager()->GetWatchesDialog();
+            watchesDialog->AddSpecialWatch(m_funcArgsWatch, true);
+        }
+    }
+
+    m_State.GetDriver()->UpdateWatches(m_localsWatch, m_funcArgsWatch, m_watches);
 }
 
 int DebuggerGDB::LaunchProcess(const wxString& cmd, const wxString& cwd)
@@ -1533,7 +1576,7 @@ void DebuggerGDB::DoBreak(bool temporary)
                 DebugLog(wxString::Format(_("GDB process (pid:%ld) doesn't exists"), pid));
 
             DebugLog(wxString::Format(_("Code::Blocks is trying to interrupt process with pid: %ld; child pid: %ld gdb pid: %ld"),
-                                      pid, childPid, m_Pid));
+                                      pid, childPid, static_cast<long>(m_Pid)));
             wxKillError error;
             if (wxKill(pid, wxSIGINT, &error) != 0)
                 DebugLog(wxString::Format(_("Can't kill process (%ld) %d"), pid, (int)(error)));
@@ -1844,7 +1887,7 @@ void DebuggerGDB::CheckIfConsoleIsClosed()
                               _("Detected that the Terminal/Console has been closed. "
                                 "Do you want to stop the debugging session?"),
                               wxART_QUESTION);
-        if (dialog.ShowModal() == AnnoyingDialog::rtYES)
+        if (dialog.ShowModal() == AnnoyingDialog::rtNO)
             m_stopDebuggerConsoleClosed = false;
         else
         {
@@ -2014,7 +2057,11 @@ void DebuggerGDB::DeleteWatch(cb::shared_ptr<cbWatch> watch)
 
 bool DebuggerGDB::HasWatch(cb::shared_ptr<cbWatch> watch)
 {
-    return std::find(m_watches.begin(), m_watches.end(), watch) != m_watches.end();
+    WatchesContainer::iterator it = std::find(m_watches.begin(), m_watches.end(), watch);
+    if (it != m_watches.end())
+        return true;
+    else
+        return watch == m_localsWatch || watch == m_funcArgsWatch;
 }
 
 void DebuggerGDB::ShowWatchProperties(cb::shared_ptr<cbWatch> watch)
@@ -2068,8 +2115,29 @@ void DebuggerGDB::CollapseWatch(cb_unused cb::shared_ptr<cbWatch> watch)
 {
 }
 
+void DebuggerGDB::UpdateWatch(cb::shared_ptr<cbWatch> watch)
+{
+    if (!HasWatch(watch))
+        return;
+
+    if (!m_State.HasDriver())
+        return;
+    cb::shared_ptr<GDBWatch> real_watch = cb::static_pointer_cast<GDBWatch>(watch);
+    if (real_watch == m_localsWatch)
+        m_State.GetDriver()->UpdateWatchLocalsArgs(real_watch, true);
+    else if (real_watch == m_funcArgsWatch)
+        m_State.GetDriver()->UpdateWatchLocalsArgs(real_watch, false);
+    else
+        m_State.GetDriver()->UpdateWatch(real_watch);
+}
+
 void DebuggerGDB::MarkAllWatchesAsUnchanged()
 {
+    if (m_localsWatch)
+        m_localsWatch->MarkAsChangedRecursive(false);
+    if (m_funcArgsWatch)
+        m_funcArgsWatch->MarkAsChangedRecursive(false);
+
     for (WatchesContainer::iterator it = m_watches.begin(); it != m_watches.end(); ++it)
         (*it)->MarkAsChangedRecursive(false);
 }

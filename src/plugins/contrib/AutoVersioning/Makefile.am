@@ -1,4 +1,4 @@
-INCLUDES = $(WX_CXXFLAGS) \
+AM_CPPFLAGS = $(WX_CXXFLAGS) \
 		-I$(top_srcdir)/src/include \
 		-I$(top_srcdir)/src/sdk/wxscintilla/include
 
@@ -26,8 +26,7 @@ noinst_HEADERS = AutoVersioning.h \
 
 EXTRA_DIST = wxsmith/avChangesDlg.wxs \
             wxsmith/avVersionEditorDlg.wxs \
-            AutoVersioning.cbp \
-            AutoVersioning-unix.cbp \
+            $(srcdir)/*.cbp \
             manifest.xml
 
 pkgdata_DATA = AutoVersioning.zip

@@ -1,4 +1,4 @@
-INCLUDES = $(WX_CXXFLAGS) \
+AM_CPPFLAGS = $(WX_CXXFLAGS) \
 		$(CB_GAMIN_CFLAGS) \
 		-I$(top_srcdir)/src/include \
 		-I$(top_srcdir)/src/sdk/wxscintilla/include \
@@ -33,8 +33,7 @@ noinst_HEADERS =  	FileManager.h \
 			directorymonitor.h \
 			se_globals.h
 
-EXTRA_DIST = 	$(srcdir)/FileManager.cbp \
-		$(srcdir)/FileManager-unix.cbp \
+EXTRA_DIST = 	$(srcdir)/*.cbp \
 		$(srcdir)/Resources/fileexplorersettings.xrc \
 		$(srcdir)/manifest.xml
 

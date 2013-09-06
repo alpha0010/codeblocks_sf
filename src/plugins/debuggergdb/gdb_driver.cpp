@@ -34,7 +34,7 @@ WX_DEFINE_OBJARRAY(TypesArray);
 // we allow for a few characters to be "eaten" this way and still get our
 // expected prompt back.
 #define GDB_PROMPT _T("cb_gdb:")
-#define FULL_GDB_PROMPT _T(">>>>>>") + GDB_PROMPT
+#define FULL_GDB_PROMPT _T(">>>>>>") GDB_PROMPT
 
 //[Switching to thread 2 (Thread 1082132832 (LWP 12298))]#0  0x00002aaaac5a2aca in pthread_cond_wait@@GLIBC_2.3.2 () from /lib/libpthread.so.0
 static wxRegEx reThreadSwitch(_T("^\\[Switching to thread .*\\]#0[ \t]+(0x[A-Fa-f0-9]+) in (.*) from (.*)"));
@@ -690,21 +690,47 @@ void GDB_driver::EvaluateSymbol(const wxString& symbol, const wxRect& tipRect)
     QueueCommand(new GdbCmd_FindTooltipType(this, symbol, tipRect));
 }
 
-void GDB_driver::UpdateWatches(cb_unused bool doLocals, cb_unused bool doArgs, WatchesContainer &watches)
+void GDB_driver::UpdateWatches(cb::shared_ptr<GDBWatch> localsWatch, cb::shared_ptr<GDBWatch> funcArgsWatch,
+                               WatchesContainer &watches)
 {
-    // FIXME (obfuscated#): add local and argument watches
-    // FIXME : remove cb_unused from params when that's done
+    bool updateWatches = false;
+    if (localsWatch && localsWatch->IsAutoUpdateEnabled())
+    {
+        QueueCommand(new GdbCmd_LocalsFuncArgs(this, localsWatch, true));
+        updateWatches = true;
+    }
+    if (funcArgsWatch && funcArgsWatch->IsAutoUpdateEnabled())
+    {
+        QueueCommand(new GdbCmd_LocalsFuncArgs(this, funcArgsWatch, false));
+        updateWatches = true;
+    }
 
     for (WatchesContainer::iterator it = watches.begin(); it != watches.end(); ++it)
-        QueueCommand(new GdbCmd_FindWatchType(this, *it));
+    {
+        WatchesContainer::reference watch = *it;
+        if (watch->IsAutoUpdateEnabled())
+        {
+            QueueCommand(new GdbCmd_FindWatchType(this, watch));
+            updateWatches = true;
+        }
+    }
 
-    // run this action-only command to update the tree
-    QueueCommand(new DbgCmd_UpdateWatchesTree(this));
+    if (updateWatches)
+    {
+        // run this action-only command to update the tree
+        QueueCommand(new DbgCmd_UpdateWatchesTree(this));
+    }
 }
 
 void GDB_driver::UpdateWatch(const cb::shared_ptr<GDBWatch> &watch)
 {
     QueueCommand(new GdbCmd_FindWatchType(this, watch));
+    QueueCommand(new DbgCmd_UpdateWatchesTree(this));
+}
+
+void GDB_driver::UpdateWatchLocalsArgs(cb::shared_ptr<GDBWatch> const &watch, bool locals)
+{
+    QueueCommand(new GdbCmd_LocalsFuncArgs(this, watch, locals));
     QueueCommand(new DbgCmd_UpdateWatchesTree(this));
 }
 
@@ -764,7 +790,8 @@ void GDB_driver::ParseOutput(const wxString& output)
     m_pDBG->DebugLog(output);
 
     int idx = buffer.First(GDB_PROMPT);
-    if (idx == wxNOT_FOUND)
+    const bool foundPrompt = (idx != wxNOT_FOUND);
+    if (!foundPrompt)
     {
         // don't uncomment the following line
         // m_ProgramIsStopped is set to false in DebuggerDriver::RunQueue()
@@ -1085,6 +1112,12 @@ void GDB_driver::ParseOutput(const wxString& output)
         }
     }
     buffer.Clear();
+
+    if (foundPrompt && m_DCmds.empty() && !m_ProgramIsStopped && !m_Cursor.changed)
+    {
+        QueueCommand(new GdbCmd_FindCursor(this));
+        m_ProgramIsStopped = true;
+    }
 
     // if program is stopped, update various states
     if (m_needsUpdate)
