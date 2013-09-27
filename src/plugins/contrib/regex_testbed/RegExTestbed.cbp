@@ -13,7 +13,7 @@
 				<Option external_deps="..\..\..\devel\libcodeblocks.a;" />
 				<Option type="3" />
 				<Option compiler="gcc" />
-				<Option parameters="--debug-log --multiple-instance -na -ns -nd" />
+				<Option parameters="--debug-log --multiple-instance -na -ns -nd -p debug" />
 				<Option host_application="..\..\..\devel\codeblocks.exe" />
 				<Compiler>
 					<Add option="$(#CB_RELEASE_TYPE)" />
@@ -74,7 +74,7 @@
 			<wxsmith version="1">
 				<gui name="wxWidgets" src="" main="" init_handlers="necessary" language="CPP" />
 				<resources>
-					<wxScrollingDialog wxs="wxsmith/RegExDlg.wxs" src="regexdlg.cpp" hdr="regexdlg.h" xrc="regexdlg.xrc" name="regex_dialog" language="CPP" />
+					<wxScrollingDialog wxs="wxsmith/RegExDlg.wxs" src="regexdlg.cpp" hdr="regexdlg.h" xrc="regexdlg.xrc" name="RegExDlg" language="CPP" />
 				</resources>
 			</wxsmith>
 			<envvars />

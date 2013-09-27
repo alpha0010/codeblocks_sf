@@ -11,7 +11,7 @@
 				<Option object_output="../../../.objs29/plugins/contrib/regex_testbed" />
 				<Option type="3" />
 				<Option compiler="gcc" />
-				<Option parameters="--debug-log --multiple-instance -ns -ni" />
+				<Option parameters="--debug-log --multiple-instance -ns -ni -p debug" />
 				<Option host_application="../../../devel29/codeblocks" />
 				<Option run_host_application_in_terminal="0" />
 				<Compiler>
@@ -62,7 +62,7 @@
 			<wxsmith version="1">
 				<gui name="wxWidgets" src="" main="" init_handlers="necessary" language="CPP" />
 				<resources>
-					<wxScrollingDialog wxs="wxsmith/RegExDlg.wxs" src="regexdlg.cpp" hdr="regexdlg.h" xrc="regexdlg.xrc" fwddecl="0" i18n="1" name="regex_dialog" language="CPP" />
+					<wxScrollingDialog wxs="wxsmith/RegExDlg.wxs" src="regexdlg.cpp" hdr="regexdlg.h" xrc="regexdlg.xrc" fwddecl="0" i18n="1" name="RegExDlg" language="CPP" />
 				</resources>
 			</wxsmith>
 			<envvars />

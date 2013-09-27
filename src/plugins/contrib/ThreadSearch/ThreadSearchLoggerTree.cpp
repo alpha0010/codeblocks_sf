@@ -75,7 +75,11 @@ void ThreadSearchLoggerTree::ConnectEvents(wxEvtHandler* pEvtHandler)
             &ThreadSearchLoggerTree::OnLoggerTreeDoubleClick, NULL, this);
 
 #if wxUSE_MENUS
+    #if   defined ( __WXGTK__ )
+    pEvtHandler->Connect(id, wxEVT_COMMAND_TREE_ITEM_RIGHT_CLICK,
+    #else
     pEvtHandler->Connect(id, wxEVT_COMMAND_TREE_ITEM_MENU,
+    #endif
             (wxObjectEventFunction)(wxEventFunction)(wxCommandEventFunction)
             &ThreadSearchLoggerTree::OnLoggerTreeContextualMenu, NULL, this);
 
@@ -101,7 +105,11 @@ void ThreadSearchLoggerTree::DisconnectEvents(wxEvtHandler* pEvtHandler)
             &ThreadSearchLoggerTree::OnLoggerTreeDoubleClick, NULL, this);
 
 #if wxUSE_MENUS
+    #if   defined ( __WXGTK__ )
+    pEvtHandler->Disconnect(id, wxEVT_COMMAND_TREE_ITEM_RIGHT_CLICK,
+    #else
     pEvtHandler->Disconnect(id, wxEVT_COMMAND_TREE_ITEM_MENU,
+    #endif
             (wxObjectEventFunction)(wxEventFunction)(wxCommandEventFunction)
             &ThreadSearchLoggerTree::OnLoggerTreeContextualMenu, NULL, this);
 
@@ -116,6 +124,8 @@ void ThreadSearchLoggerTree::DisconnectEvents(wxEvtHandler* pEvtHandler)
 
 void ThreadSearchLoggerTree::OnLoggerTreeClick(wxTreeEvent& event)
 {
+    if (m_pTreeLog->GetCount() == 0)
+        return;
     // Manages list log left single click
     wxTreeItemId itemId = event.GetItem();
     if ( itemId.IsOk() && hasResultLineForTreeItem(itemId) )
@@ -331,7 +341,7 @@ void ThreadSearchLoggerTree::OnSearchBegin(const ThreadSearchFindData& findData)
 }
 
 
-void ThreadSearchLoggerTree::OnDeleteTreeItem(wxCommandEvent& event)
+void ThreadSearchLoggerTree::OnDeleteTreeItem(cb_unused wxCommandEvent& event)
 {
     if ( m_ToDeleteItemId.IsOk() )
     {
@@ -344,7 +354,6 @@ void ThreadSearchLoggerTree::OnDeleteTreeItem(wxCommandEvent& event)
         }
         DeleteTreeItem(m_ToDeleteItemId);
     }
-    event.Skip();
 }
 
 

@@ -438,8 +438,10 @@ wxString Tokenizer::ReadToEOL(bool nestBraces, bool stripUnneeded)
         wxChar* p = buffer;
         wxString str;
 
+        // loop all the physical lines in reading macro definition
         for (;;)
         {
+            // this while statement end up in a physical EOL '\n'
             while (NotEOF() && CurrentChar() != _T('\n'))
             {
                 while (SkipComment())
@@ -449,7 +451,12 @@ wxString Tokenizer::ReadToEOL(bool nestBraces, bool stripUnneeded)
                 if (ch == _T('\n'))
                     break;
 
-                if (ch <= _T(' ') && (p == buffer || *(p - 1) == ch))
+                // if we see two spaces in the buffer, we should drop the second one. Note, if the
+                // first char is space, we should always save it to buffer, this is to distinguish
+                // a function/variable like macro definition, e.g.
+                // #define MYMACRO(A)  ...   -> function like macro definition
+                // #define MYMACRO (A)  ...  -> variable like macro definition, note a space before '('
+                if (ch <= _T(' ') && p > buffer && *(p - 1) == ch)
                 {
                     MoveToNextChar();
                     continue;
@@ -475,16 +482,18 @@ wxString Tokenizer::ReadToEOL(bool nestBraces, bool stripUnneeded)
                 MoveToNextChar();
             }
 
+            // check to see it is a logical EOL, some long macro definition contains a backslash-newline
             if (!IsBackslashBeforeEOL() || IsEOF())
-                break;
+                break; //break the outer for loop
             else
             {
+                //remove the backslash-newline and goto next physical line
                 while (p > buffer && *(--p) <= _T(' '))
                     ;
                 MoveToNextChar();
             }
         }
-
+        // remove the extra spaces in the end of buffer
         while (p > buffer && *(p - 1) <= _T(' '))
             --p;
 
@@ -713,7 +722,9 @@ void Tokenizer::ReadParentheses(wxString& str)
                 if (*(p - 1) <= _T(' '))
                 {
                     *p = _T('=');
-                    *++p = _T(' ');
+                    // Don't add a space after '=' sign, in case another '=' follows it
+                    // (see how the 'else' block below works).
+                    //*++p = _T(' ');
                     ++p;
                 }
                 else
@@ -729,6 +740,7 @@ void Tokenizer::ReadParentheses(wxString& str)
                             *++p = _T(' ');
                             ++p;
                         }
+                        break;
 
                     default:
                         {
@@ -737,6 +749,7 @@ void Tokenizer::ReadParentheses(wxString& str)
                             *++p = _T(' ');
                             ++p;
                         }
+                        break;
                     }
                 }
             }
@@ -935,10 +948,10 @@ bool Tokenizer::SkipComment()
         {
             if (cstyle) // C style comment
             {
-                SkipToChar('/');
-                if (PreviousChar() == '*') // end of a C style comment
+                SkipToChar('*');
+                if (NextChar() == '/') // end of a C style comment
                 {
-                    MoveToNextChar();
+                    MoveToNextChar(2);
                     break;
                 }
                 if (!MoveToNextChar())
@@ -1074,7 +1087,7 @@ bool Tokenizer::SkipUnwanted()
     // skip the following = or ?
     if (m_State & tsSkipEqual)
     {
-        if (c == _T('='))
+        if (c == _T('=') && NextChar() != _T('=')) //only skip after single equal sign, not double equals sign
         {
             if (!SkipToOneOfChars(_T(",;}"), true, true, false))
                 return false;
@@ -1726,6 +1739,12 @@ void Tokenizer::SplitArguments(wxArrayString& results)
         return;
 
     MoveToNextChar(); // Skip the '('
+    while (SkipWhiteSpace() || SkipComment())
+        ;
+
+    const TokenizerState oldState = m_State;
+    m_State = tsReadRawExpression;
+
     int level = 1; // include '('
 
     wxString piece;
@@ -1762,6 +1781,9 @@ void Tokenizer::SplitArguments(wxArrayString& results)
         while (SkipWhiteSpace() || SkipComment())
             ;
     }
+
+    // reset tokenizer's functionality
+    m_State = oldState;
 }
 
 bool Tokenizer::ReplaceBufferForReparse(const wxString& target, bool updatePeekToken)
