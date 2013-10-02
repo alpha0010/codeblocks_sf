@@ -240,9 +240,11 @@ void StartHerePage::RegisterColours()
     inited = true;
 
     ColourManager* cm = Manager::Get()->GetColourManager();
-    cm->RegisterColour(_("Start here page"), _("Background colour"), wxT("start_here_background"), wxSystemSettings::GetColour(wxSYS_COLOUR_BACKGROUND));
-    cm->RegisterColour(_("Start here page"), _("Link colour"),       wxT("start_here_link"),       *wxBLUE);
-    cm->RegisterColour(_("Start here page"), _("Text colour"),       wxT("start_here_text"),       *wxBLACK);
+    cm->RegisterColour(_("Start here page"), _("Background colour"), wxT("start_here_background"),
+                       wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW));
+    cm->RegisterColour(_("Start here page"), _("Link colour"), wxT("start_here_link"), *wxBLUE);
+    cm->RegisterColour(_("Start here page"), _("Text colour"), wxT("start_here_text"),
+                       wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
 }
 
 void StartHerePage::Reload()

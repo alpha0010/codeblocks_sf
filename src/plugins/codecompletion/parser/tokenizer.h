@@ -282,7 +282,10 @@ protected:
     /** Initialize some member variables */
     void BaseInit();
 
-    /** Do the actual lexical analysis, both GetToken() and PeekToken will internally call this function */
+    /** Do the actual lexical analysis, both GetToken() and PeekToken() will internally call this
+     * function. It just move the m_TokenIndex one step forward, and return a lexeme before the
+     * m_TokenIndex.
+     */
     wxString DoGetToken();
 
     /** Read a file, and fill the m_Buffer */
@@ -371,16 +374,13 @@ private:
         return false;
     };
 
-    /** This function is not used in the current code, it is replaced by MacroReplace() */
-    inline const wxString& ThisOrReplacement(const wxString& str) const
-    {
-        wxStringHashMap::const_iterator it = s_Replacements.find(str);
-        if (it != s_Replacements.end())
-            return it->second;
-        return str;
-    };
-
-    /** Check the previous char before EOL is a backslash */
+    /** Check the previous char before EOL is a backslash, call this function in the condition that
+     * the CurrentChar is '\n', here we have two cases:
+     * ......\\\r\n......
+     *            ^--current char, this is DOS style EOL
+     * ......\\\n......
+     *          ^--current char, this is Linux style EOL
+     */
     inline bool IsBackslashBeforeEOL()
     {
         wxChar last = PreviousChar();
@@ -444,6 +444,12 @@ private:
      * such as the token name, the line number of the token, the current brace nest level.
      */
     wxString             m_Token;                //!< token name
+    /** when parsing a buffer
+     * ....... namespace std { int a; .......
+     *                      ^ --- m_TokenIndex, m_Token = "std"
+     * m_TokenIndex is always point to the next character of a valid token, in the above example,
+     * it is the space after "std".
+     */
     unsigned int         m_TokenIndex;           //!< index offset in buffer
     unsigned int         m_LineNumber;           //!< line offset in buffer
     unsigned int         m_NestLevel;            //!< keep track of block nesting { }
