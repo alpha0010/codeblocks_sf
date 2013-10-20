@@ -1577,7 +1577,7 @@ void NativeParserBase::ComputeCallTip(TokenTree*        tree,
             for (TokenIdxSet::iterator chIt = token->m_Children.begin(); chIt != token->m_Children.end(); ++chIt)
             {
                 const Token* tk = tree->at(*chIt);
-                if (tk && tk->m_TokenKind == tkConstructor)
+                if (tk && tk->m_TokenKind == tkConstructor && tk->m_Scope != tsPrivate)
                 {
                     wxString tkTip;
                     if ( !PrettyPrintToken(tree, tk, tkTip) )

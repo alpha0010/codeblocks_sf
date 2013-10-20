@@ -1263,6 +1263,11 @@ wxStringVec CodeCompletion::GetCallTips(int pos, int style, cbEditor* ed, int& h
     return tips;
 }
 
+wxString CodeCompletion::GetDocumentation(const CCToken& token)
+{
+    return m_DocHelper.GenerateHTML(token.id, m_NativeParser.GetParser().GetTokenTree());
+}
+
 std::vector<CodeCompletion::CCToken> CodeCompletion::GetTokenAt(int pos, cbEditor* ed)
 {
     std::vector<CCToken> tokens;
@@ -1303,6 +1308,11 @@ std::vector<CodeCompletion::CCToken> CodeCompletion::GetTokenAt(int pos, cbEdito
     }
 
     return tokens;
+}
+
+wxString CodeCompletion::OnDocumentationLink(wxHtmlLinkEvent& event, bool& dismissPopup)
+{
+    return m_DocHelper.OnDocumentationLink(event, dismissPopup);
 }
 
 void CodeCompletion::DoAutocomplete(const CCToken& token, cbEditor* ed)
