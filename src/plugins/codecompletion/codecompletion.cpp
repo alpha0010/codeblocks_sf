@@ -1328,7 +1328,6 @@ void CodeCompletion::DoAutocomplete(const CCToken& token, cbEditor* ed)
     {
         --startPos;
     }
-    const int endPos = stc->WordEndPosition(curPos, true);
     bool needReparse = false;
 
     if (stc->IsPreprocessor(stc->GetStyleAt(curPos)))
@@ -1372,7 +1371,7 @@ void CodeCompletion::DoAutocomplete(const CCToken& token, cbEditor* ed)
         }
         needReparse = true;
 
-        int   pos = startPos;
+        int   pos = startPos - 1;
         wxChar ch = stc->GetCharAt(pos);
         while (ch != _T('<') && ch != _T('"') && ch != _T('#') && (pos>0))
             ch = stc->GetCharAt(--pos);
@@ -1384,10 +1383,13 @@ void CodeCompletion::DoAutocomplete(const CCToken& token, cbEditor* ed)
         else if (ch == _T('<'))
             itemText << _T('>');
     }
-
-    const wxString alreadyText = stc->GetTextRange(curPos, endPos);
-    if (!alreadyText.IsEmpty() && itemText.EndsWith(alreadyText))
-        curPos = endPos;
+    else
+    {
+        const int endPos = stc->WordEndPosition(curPos, true);
+        const wxString& alreadyText = stc->GetTextRange(curPos, endPos);
+        if (!alreadyText.IsEmpty() && itemText.EndsWith(alreadyText))
+            curPos = endPos;
+    }
 
     int positionModificator = 0;
     bool insideParentheses = false;

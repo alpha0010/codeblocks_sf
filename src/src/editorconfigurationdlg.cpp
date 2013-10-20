@@ -19,6 +19,7 @@
     #include <wx/listctrl.h>
     #include <wx/menu.h>
     #include <wx/radiobox.h>
+    #include <wx/regex.h>
     #include <wx/settings.h>
     #include <wx/slider.h>
     #include <wx/spinctrl.h>
@@ -99,7 +100,8 @@ EditorConfigurationDlg::EditorConfigurationDlg(wxWindow* parent)
     m_Lang(HL_NONE),
     m_DefCodeFileType(0),
     m_ThemeModified(false),
-    m_EnableChangebar(false)
+    m_EnableChangebar(false),
+    m_pImageList(nullptr)
 {
     wxXmlResource::Get()->LoadObject(this, parent, _T("dlgConfigureEditor"),_T("wxScrollingDialog"));
 
@@ -138,6 +140,7 @@ EditorConfigurationDlg::EditorConfigurationDlg(wxWindow* parent)
     XRCCTRL(*this, "chkCamelCase",                wxCheckBox)->SetValue(cfg->ReadBool(_T("/camel_case"),                 false));
     XRCCTRL(*this, "chkResetZoom",                wxCheckBox)->SetValue(cfg->ReadBool(_T("/reset_zoom"),                 false));
     XRCCTRL(*this, "chkZoomAll",                  wxCheckBox)->SetValue(cfg->ReadBool(_T("/zoom_all"),                   false));
+    XRCCTRL(*this, "chkSyncEditorWithProjectManager", wxCheckBox)->SetValue(cfg->ReadBool(_T("/sync_editor_with_project_manager"), false));
     XRCCTRL(*this, "spnTabSize",                  wxSpinCtrl)->SetValue(cfg->ReadInt(_T("/tab_size"),                    4));
     XRCCTRL(*this, "cmbViewWS",                   wxChoice)->SetSelection(cfg->ReadInt(_T("/view_whitespace"),           0));
     XRCCTRL(*this, "rbTabText",                   wxRadioBox)->SetSelection(cfg->ReadBool(_T("/tab_text_relative"),      true)? 1 : 0);
@@ -247,22 +250,7 @@ EditorConfigurationDlg::EditorConfigurationDlg(wxWindow* parent)
         m_DefaultCode.Add(cfg->Read(key, wxEmptyString));
     }// end for : idx
 
-    // load listbook images
-    const wxString base = ConfigManager::GetDataFolder() + _T("/images/settings/");
-
-    wxImageList* images = new wxImageList(80, 80);
-    wxBitmap bmp;
-    for (int i = 0; i < IMAGES_COUNT; ++i)
-    {
-        bmp = cbLoadBitmap(base + base_imgs[i] + _T(".png"), wxBITMAP_TYPE_PNG);
-        images->Add(bmp);
-        bmp = cbLoadBitmap(base + base_imgs[i] + _T("-off.png"), wxBITMAP_TYPE_PNG);
-        images->Add(bmp);
-    }
-    wxListbook* lb = XRCCTRL(*this, "nbMain", wxListbook);
-    lb->AssignImageList(images);
-    int sel = Manager::Get()->GetConfigManager(_T("app"))->ReadInt(_T("/environment/settings_size"), 0);
-    SetSettingsIconsStyle(lb->GetListView(), (SettingsIconsStyle)sel);
+    LoadListbookImages();
 
     // add all plugins configuration panels
     AddPluginPanels();
@@ -276,6 +264,7 @@ EditorConfigurationDlg::EditorConfigurationDlg(wxWindow* parent)
 
     // make sure everything is laid out properly
     GetSizer()->SetSizeHints(this);
+    CentreOnParent();
 }
 
 EditorConfigurationDlg::~EditorConfigurationDlg()
@@ -285,6 +274,8 @@ EditorConfigurationDlg::~EditorConfigurationDlg()
 
     if (m_TextColourControl)
         delete m_TextColourControl;
+
+    delete m_pImageList;
 }
 
 void EditorConfigurationDlg::AddPluginPanels()
@@ -310,11 +301,27 @@ void EditorConfigurationDlg::AddPluginPanels()
         if (offFile.IsEmpty())
             offFile = ConfigManager::LocateDataFile(noimg + _T("-off.png"), sdDataGlobal | sdDataUser);
 
-        lb->GetImageList()->Add(cbLoadBitmap(onFile));
-        lb->GetImageList()->Add(cbLoadBitmap(offFile));
-        lb->SetPageImage(lb->GetPageCount() - 1, lb->GetImageList()->GetImageCount() - 2);
+        m_pImageList->Add(cbLoadBitmap(onFile));
+        m_pImageList->Add(cbLoadBitmap(offFile));
+        lb->SetPageImage(lb->GetPageCount() - 1, m_pImageList->GetImageCount() - 2);
     }
 
+    UpdateListbookImages();
+}
+
+void EditorConfigurationDlg::LoadListbookImages()
+{
+    const wxString base = ConfigManager::GetDataFolder() + _T("/images/settings/");
+
+    m_pImageList = new wxImageList(80, 80);
+    wxBitmap bmp;
+    for (int i = 0; i < IMAGES_COUNT; ++i)
+    {
+        bmp = cbLoadBitmap(base + base_imgs[i] + _T(".png"));
+        m_pImageList->Add(bmp);
+        bmp = cbLoadBitmap(base + base_imgs[i] + _T("-off.png"));
+        m_pImageList->Add(bmp);
+    }
     UpdateListbookImages();
 }
 
@@ -322,10 +329,19 @@ void EditorConfigurationDlg::UpdateListbookImages()
 {
     wxListbook* lb = XRCCTRL(*this, "nbMain", wxListbook);
     int sel = lb->GetSelection();
-    // set page images according to their on/off status
-    for (size_t i = 0; i < IMAGES_COUNT + m_PluginPanels.GetCount(); ++i)
+
+    if (SettingsIconsStyle(Manager::Get()->GetConfigManager(_T("app"))->ReadInt(_T("/environment/settings_size"), 0)))
     {
-        lb->SetPageImage(i, (i * 2) + (sel == (int)i ? 0 : 1));
+        SetSettingsIconsStyle(lb->GetListView(), sisNoIcons);
+        lb->SetImageList(nullptr);
+    }
+    else
+    {
+        lb->SetImageList(m_pImageList);
+        // set page images according to their on/off status
+        for (size_t i = 0; i < IMAGES_COUNT + m_PluginPanels.GetCount(); ++i)
+            lb->SetPageImage(i, (i * 2) + (sel == (int)i ? 0 : 1));
+        SetSettingsIconsStyle(lb->GetListView(), sisLargeIcons);
     }
 
     // update the page title
@@ -341,9 +357,7 @@ void EditorConfigurationDlg::OnPageChanged(wxListbookEvent& event)
 {
     // update only on real change, not on dialog creation
     if (event.GetOldSelection() != -1 && event.GetSelection() != -1)
-    {
         UpdateListbookImages();
-    }
 }
 
 void EditorConfigurationDlg::CreateColoursSample()
@@ -634,6 +648,27 @@ void EditorConfigurationDlg::OnColourTheme(cb_unused wxCommandEvent& event)
     }
 }
 
+namespace
+{
+bool CheckColourThemeName(const wxString &name, wxWindow *parent)
+{
+    wxRegEx regex(wxT("^[A-Za-z][A-Za-z_0-9]*$"));
+    if (regex.Matches(name))
+        return true;
+    else
+    {
+        cbMessageBox(_("You've entered invalid characters for the name of the theme. "
+                       "Only alphanumeric characters and '_' are allowed! The first character should be a letter. "
+                       "Please try again."),
+                     _("Error"),
+                     wxOK,
+                     parent);
+        return false;
+    }
+}
+
+} // anonymous namespace
+
 void EditorConfigurationDlg::OnAddColourTheme(cb_unused wxCommandEvent& event)
 {
     wxTextEntryDialog dlg(this, _("Please enter the name of the new colour theme:"), _("New theme name"));
@@ -642,6 +677,9 @@ void EditorConfigurationDlg::OnAddColourTheme(cb_unused wxCommandEvent& event)
         return;
 
     wxString name = dlg.GetValue();
+    if (!CheckColourThemeName(name, this))
+        return;
+
     wxChoice* cmbThemes = XRCCTRL(*this, "cmbThemes", wxChoice);
     cmbThemes->Append(name);
     cmbThemes->SetSelection(cmbThemes->GetCount() - 1);
@@ -670,6 +708,9 @@ void EditorConfigurationDlg::OnRenameColourTheme(cb_unused wxCommandEvent& event
         return;
 
     wxString name = dlg.GetValue();
+    if (!CheckColourThemeName(name, this))
+        return;
+
     wxString oldName = m_Theme->GetName();
     wxChoice* cmbThemes = XRCCTRL(*this, "cmbThemes", wxChoice);
     int idx = cmbThemes->GetSelection();
@@ -981,6 +1022,7 @@ void EditorConfigurationDlg::EndModal(int retCode)
         }
         cfg->Write(_T("/reset_zoom"),                          resetZoom);
         cfg->Write(_T("/zoom_all"),                            zoomAll);
+        cfg->Write(_T("/sync_editor_with_project_manager"),    XRCCTRL(*this, "chkSyncEditorWithProjectManager", wxCheckBox)->GetValue());
 
         cfg->Write(_T("/tab_size"),                            XRCCTRL(*this, "spnTabSize",                           wxSpinCtrl)->GetValue());
         cfg->Write(_T("/view_whitespace"),                     XRCCTRL(*this, "cmbViewWS",                            wxChoice)->GetSelection());

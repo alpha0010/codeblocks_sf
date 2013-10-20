@@ -359,6 +359,12 @@
 																		</object>
 																		<flag>wxALL|wxALIGN_LEFT|wxALIGN_TOP</flag>
 																	</object>
+																	<object class="sizeritem">
+																		<object class="wxCheckBox" name="chkSyncEditorWithProjectManager">
+																			<label>S&amp;ynchronise Editor with Project Manager</label>
+																		</object>
+																		<flag>wxALL|wxALIGN_LEFT|wxALIGN_TOP</flag>
+																	</object>
 																</object>
 																<flag>wxALL|wxEXPAND|wxALIGN_LEFT|wxALIGN_TOP</flag>
 																<border>4</border>
@@ -574,7 +580,6 @@
 							</object>
 						</object>
 						<label>General settings</label>
-						<selected>1</selected>
 					</object>
 					<object class="listbookpage">
 						<object class="wxPanel" name="tabFolding">
@@ -1231,7 +1236,6 @@
 				</object>
 				<flag>wxALL|wxEXPAND|wxALIGN_LEFT|wxALIGN_TOP</flag>
 				<border>8</border>
-				<option>1</option>
 			</object>
 			<object class="sizeritem">
 				<object class="wxStaticLine" name="ID_STATICLINE3" />

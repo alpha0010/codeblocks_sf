@@ -93,7 +93,11 @@ class DDEConnection : public wxConnection
 {
     public:
         DDEConnection(MainFrame* frame) : m_Frame(frame) { ; }
+#if wxCHECK_VERSION(2, 9, 5)
+        bool OnExecute(const wxString& topic, const void *data, size_t size, wxIPCFormat format);
+#else
         bool OnExecute(const wxString& topic, wxChar *data, int size, wxIPCFormat format);
+#endif
         bool OnDisconnect();
     private:
         MainFrame* m_Frame;
@@ -104,9 +108,13 @@ wxConnectionBase* DDEServer::OnAcceptConnection(const wxString& topic)
     return topic == DDE_TOPIC ? new DDEConnection(m_Frame) : 0L;
 }
 
+#if wxCHECK_VERSION(2, 9, 5)
+bool DDEConnection::OnExecute(cb_unused const wxString& topic, const void *data, cb_unused size_t size, cb_unused wxIPCFormat format)
+#else
 bool DDEConnection::OnExecute(cb_unused const wxString& topic, wxChar *data, cb_unused int size, cb_unused wxIPCFormat format)
+#endif
 {
-    wxString strData(data);
+    wxString strData((wxChar*)data);
 
     if (strData.StartsWith(_T("[IfExec_Open(\"")))
         return false; // let Shell Open handle the request as we *know* that we have registered the Shell Open command, too
@@ -273,7 +281,11 @@ BEGIN_EVENT_TABLE(CodeBlocksApp, wxApp)
 END_EVENT_TABLE()
 
 #ifdef __WXMAC__
+#if wxCHECK_VERSION(2,9,0)
+#include "wx/osx/core/cfstring.h"
+#else
 #include "wx/mac/corefoundation/cfstring.h"
+#endif
 #include "wx/intl.h"
 
 #include <CoreFoundation/CFBundle.h>
@@ -288,7 +300,11 @@ static wxString GetResourcesDir()
     CFRelease(resourcesURL);
     CFStringRef cfStrPath = CFURLCopyFileSystemPath(absoluteURL,kCFURLPOSIXPathStyle);
     CFRelease(absoluteURL);
-    return wxMacCFStringHolder(cfStrPath).AsString(wxLocale::GetSystemEncoding());
+    #if wxCHECK_VERSION(2,9,0)
+      return wxCFStringRef(cfStrPath).AsString(wxLocale::GetSystemEncoding());
+    #else
+      return wxMacCFStringHolder(cfStrPath).AsString(wxLocale::GetSystemEncoding());
+    #endif
 }
 #endif
 
