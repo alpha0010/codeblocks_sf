@@ -139,25 +139,6 @@ struct cbEditorInternalData
 
     // funcs
 
-    /** Get the EOL pattern according to the editor's scintilla settings */
-    wxString GetEOLString() const
-    {
-        wxString eolstring;
-        cbStyledTextCtrl* control = m_pOwner->GetControl();
-        switch (control->GetEOLMode())
-        {
-            case wxSCI_EOL_LF:
-                eolstring = _T("\n");
-                break;
-            case wxSCI_EOL_CR:
-                eolstring = _T("\r");
-                break;
-            default:
-                eolstring = _T("\r\n");
-        }
-        return eolstring;
-    }
-
     /** Strip trailing blanks before saving */
     void StripTrailingSpaces()
     {
@@ -195,7 +176,7 @@ struct cbEditorInternalData
         int maxLines = control->GetLineCount();
         int enddoc = control->PositionFromLine(maxLines);
         if (maxLines <= 1 || enddoc > control->PositionFromLine(maxLines-1))
-            control->InsertText(enddoc,GetEOLString());
+            control->InsertText(enddoc, GetEOLStr(m_pOwner->GetControl()->GetEOLMode()));
     }
 
     /** Make sure all the lines end with the same EOL mode */
@@ -3131,10 +3112,18 @@ void cbEditor::OnMarginClick(wxScintillaEvent& event)
 
 void cbEditor::OnEditorUpdateUI(wxScintillaEvent& event)
 {
-    if (Manager::Get()->GetEditorManager()->GetActiveEditor() == this)
+    EditorManager* edMgr = Manager::Get()->GetEditorManager();
+    if (edMgr->GetActiveEditor() == this)
     {
         NotifyPlugins(cbEVT_EDITOR_UPDATE_UI);
         HighlightBraces(); // brace highlighting
+        if (event.GetUpdated() & wxSCI_UPDATE_SELECTION)
+        {
+            // emulate ScintillaWX::ClaimSelection()
+            cbStyledTextCtrl* stc = GetControl();
+            if (stc->GetSelectionStart() != stc->GetSelectionEnd())
+                edMgr->SetSelectionClipboard(stc->GetSelectedText());
+        }
     }
     OnScintillaEvent(event);
 }
