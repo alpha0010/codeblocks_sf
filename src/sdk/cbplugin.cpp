@@ -35,6 +35,7 @@
 #include "annoyingdialog.h"
 #include "cbdebugger_interfaces.h"
 #include "cbstyledtextctrl.h"
+#include "ccmanager.h"
 #include "debuggermanager.h"
 #include "editor_hooks.h"
 #include "loggers.h"
@@ -982,6 +983,11 @@ cbMimePlugin::cbMimePlugin()
 cbCodeCompletionPlugin::cbCodeCompletionPlugin()
 {
     m_Type = ptCodeCompletion;
+}
+
+bool cbCodeCompletionPlugin::IsProviderFor(cbEditor* ed)
+{
+    return (Manager::Get()->GetCCManager()->GetProviderFor(ed) == this);
 }
 
 /////
