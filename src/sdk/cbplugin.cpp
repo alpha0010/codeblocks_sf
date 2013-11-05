@@ -124,8 +124,8 @@ cbCompilerPlugin::cbCompilerPlugin()
 /////
 
 cbDebuggerPlugin::cbDebuggerPlugin(const wxString &guiName, const wxString &settingsName) :
-    m_toolbar(NULL),
-    m_pCompiler(NULL),
+    m_toolbar(nullptr),
+    m_pCompiler(nullptr),
     m_WaitingCompilerToFinish(false),
     m_EditorHookId(-1),
     m_StartType(StartTypeUnknown),
@@ -331,7 +331,7 @@ cbDebuggerPlugin::SyncEditorResult cbDebuggerPlugin::SyncEditor(const wxString& 
     }
 
     cbProject* project = Manager::Get()->GetProjectManager()->GetActiveProject();
-    ProjectFile* f = project ? project->GetFileByFilename(filename, false, true) : 0;
+    ProjectFile* f = project ? project->GetFileByFilename(filename, false, true) : nullptr;
 
     wxString unixfilename = UnixFilename(filename);
     wxFileName fname(unixfilename);
@@ -695,7 +695,7 @@ bool cbDebuggerPlugin::EnsureBuildUpToDate(StartType startType)
         if (!cbDebuggerCommonConfig::GetFlag(cbDebuggerCommonConfig::AutoBuild))
         {
             m_WaitingCompilerToFinish = false;
-            m_pCompiler = NULL;
+            m_pCompiler = nullptr;
             return true;
         }
 
@@ -704,7 +704,7 @@ bool cbDebuggerPlugin::EnsureBuildUpToDate(StartType startType)
         if (plugins.GetCount())
             m_pCompiler = (cbCompilerPlugin*)plugins[0];
         else
-            m_pCompiler = NULL;
+            m_pCompiler = nullptr;
         if (m_pCompiler)
         {
             // is the compiler already running?
@@ -741,7 +741,7 @@ void cbDebuggerPlugin::OnCompilerFinished(cb_unused CodeBlocksEvent& event)
             {
                 ProjectManager *manager = Manager::Get()->GetProjectManager();
                 if (manager->GetIsRunning() && manager->GetIsRunning() == this)
-                    manager->SetIsRunning(NULL);
+                    manager->SetIsRunning(nullptr);
                 compilerFailed = true;
             }
         }
@@ -750,7 +750,7 @@ void cbDebuggerPlugin::OnCompilerFinished(cb_unused CodeBlocksEvent& event)
         {
             ProjectManager *manager = Manager::Get()->GetProjectManager();
             if (manager->GetIsRunning() && manager->GetIsRunning() == this)
-                manager->SetIsRunning(NULL);
+                manager->SetIsRunning(nullptr);
         }
     }
 }
@@ -821,7 +821,7 @@ int cbDebuggerPlugin::RunNixConsole(wxString &consoleTty)
 
 void cbDebuggerPlugin::MarkAsStopped()
 {
-    Manager::Get()->GetProjectManager()->SetIsRunning(NULL);
+    Manager::Get()->GetProjectManager()->SetIsRunning(nullptr);
 }
 
 wxString cbDebuggerPlugin::GetConsoleTty(cb_unused int ConsolePid)
@@ -930,7 +930,7 @@ void cbDebuggerPlugin::ProcessValueTooltip(CodeBlocksEvent& event)
         return;
 
     EditorBase* base = event.GetEditor();
-    cbEditor* ed = base && base->IsBuiltinEditor() ? static_cast<cbEditor*>(base) : 0;
+    cbEditor* ed = base && base->IsBuiltinEditor() ? static_cast<cbEditor*>(base) : nullptr;
     if (!ed)
         return;
 

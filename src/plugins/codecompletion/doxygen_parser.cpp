@@ -406,8 +406,8 @@ wxString DocumentationHelper::DoxygenToHTML(const wxString& doc)
     using namespace HTMLTags;
 
     wxString arguments[5];
-    wxString &plainText = arguments[0], brief = arguments[1], params = arguments[2],
-        seeAlso = arguments[3], returns = arguments[4];
+    wxString &plainText = arguments[0], &brief = arguments[1], &params = arguments[2],
+        &seeAlso = arguments[3], &returns = arguments[4];
 
     Doxygen::DoxygenParser parser;
     int keyword = parser.FindNextKeyword(doc);

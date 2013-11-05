@@ -75,7 +75,7 @@ namespace CCManagerHelper
     }
 }
 
-template<> CCManager* Mgr<CCManager>::instance = 0;
+template<> CCManager* Mgr<CCManager>::instance = nullptr;
 template<> bool Mgr<CCManager>::isShutdown = false;
 
 const int idCallTipTimer = wxNewId();
