@@ -6,12 +6,14 @@
 #ifndef NATIVEPARSERBASE_H
 #define NATIVEPARSERBASE_H
 
+#if wxCHECK_VERSION(2, 9, 0)
+#include <wx/wxcrt.h> // wxIsalnum
+#endif
 #include <wx/string.h>
 
 #include <map>
 #include <queue>
 
-#include "parser/parserthread.h" // g_UnnamedSymbol
 #include "parser/token.h"
 #include "parser/tokentree.h"
 
@@ -395,7 +397,7 @@ private:
     bool AddChildrenOfUnnamed(TokenTree* tree, const Token* parent, TokenIdxSet& result)
     {
         if (  ( (parent->m_TokenKind & (tkClass | tkEnum)) != 0 )
-            && parent->m_Name.StartsWith(g_UnnamedSymbol) )
+            && parent->m_IsAnonymous == true )
         {
             // add all its children
             for (TokenIdxSet::const_iterator it = parent->m_Children.begin();

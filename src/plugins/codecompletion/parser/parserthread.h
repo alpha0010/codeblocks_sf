@@ -23,7 +23,6 @@
 #include "token.h"
 #include "tokentree.h"
 
-extern const wxString g_UnnamedSymbol;
 
 struct NameSpace
 {
@@ -342,6 +341,19 @@ private:
     /** Only for debug */
     bool IsStillAlive(const wxString& funcInfo);
 
+    /** change an anonymous(unnamed) token's name to a human readable name, the m_Str is expect to
+     *  store the unnamed token name, for example, for parsing the code
+     *  struct
+     *  {
+     *      int x;
+     *      float y;
+     *  } abc;
+     *  when we first find an anonymous token, which is named _UnnamedStruct1_2, after this function
+     *  call, the anonymous token name will becomes struct1_abc, and m_Str will changed from
+     *  _UnnamedStruct1_2 to struct1_abc.
+     */
+    void  RefineAnonymousTypeToken(short int typeMask, wxString alise);
+
     /** if we regard the parserThread class as a syntax analyzer, then the Tokenizer class is
       * regard as the lexer, which always feeds a wxString by calling m_Tokenizer.GetToken()
       */
@@ -427,9 +439,9 @@ private:
     /** holds current template argument(s) when a template occurs */
     wxString             m_TemplateArgument;
 
-    size_t        m_StructUnionUnnamedCount;
+    size_t               m_StructUnionUnnamedCount;
 
-    size_t        m_EnumUnnamedCount;
+    size_t               m_EnumUnnamedCount;
 };
 
 #endif // PARSERTHREAD_H
