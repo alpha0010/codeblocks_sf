@@ -20,7 +20,6 @@
 					<Add option="-mthreads" />
 					<Add option="-fmessage-length=0" />
 					<Add option="-fexceptions" />
-					<Add option="-Winvalid-pch" />
 					<Add option="-DHUNSPELL_STATIC" />
 					<Add directory="wxspellchecker\include" />
 					<Add directory="$(#WX30.include)" />
@@ -44,7 +43,6 @@
 					<Add option="$(#CB_RELEASE_TYPE)" />
 					<Add option="-fmessage-length=0" />
 					<Add option="-fexceptions" />
-					<Add option="-Winvalid-pch" />
 					<Add option="-pipe" />
 					<Add option="-mthreads" />
 					<Add option="-DHUNSPELL_STATIC" />
@@ -72,11 +70,10 @@
 					<Add option="$(#CB_RELEASE_TYPE)" />
 					<Add option="-fmessage-length=0" />
 					<Add option="-fexceptions" />
-					<Add option="-Winvalid-pch" />
 					<Add option="-pipe" />
 					<Add option="-mthreads" />
 					<Add option="-DBUILDING_PLUGIN" />
-					<Add option="-DCB_PRECOMP" />
+					<Add option="-DNOPCH" />
 					<Add option="-DcbDEBUG" />
 					<Add directory="hunspell\src" />
 					<Add directory="wxspellchecker\include" />
@@ -120,7 +117,6 @@
 		<Compiler>
 			<Add option="-DHAVE_W32API_H" />
 			<Add option="-D__WXMSW__" />
-			<Add option="-DWX_PRECOMP" />
 			<Add option="-DWXUSINGDLL" />
 			<Add option="-DwxUSE_UNICODE" />
 		</Compiler>
