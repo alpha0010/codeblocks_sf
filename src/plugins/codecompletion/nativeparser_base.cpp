@@ -1577,12 +1577,13 @@ void NativeParserBase::ComputeCallTip(TokenTree*        tree,
             for (TokenIdxSet::iterator chIt = token->m_Children.begin(); chIt != token->m_Children.end(); ++chIt)
             {
                 const Token* tk = tree->at(*chIt);
-                if (tk && tk->m_TokenKind == tkConstructor && tk->m_Scope != tsPrivate)
+                if (   tk && (   tk->m_TokenKind == tkConstructor
+                              || (tk->m_IsOperator && tk->m_Name.EndsWith(wxT("()"))) )
+                    && (tk->m_Scope == tsPublic || tk->m_Scope == tsUndefined) )
                 {
                     wxString tkTip;
-                    if ( !PrettyPrintToken(tree, tk, tkTip) )
-                        tkTip = wxT("Error while pretty printing token!");
-                    items.Add(tkTip);
+                    if (PrettyPrintToken(tree, tk, tkTip))
+                        items.Add(tkTip);
                 }
             }
             continue;

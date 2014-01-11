@@ -1,3 +1,12 @@
+/*
+ * This file is part of the Code::Blocks IDE and licensed under the GNU General Public License, version 3
+ * http://www.gnu.org/licenses/gpl-3.0.html
+ *
+ * $Revision$
+ * $Id$
+ * $HeadURL$
+ */
+
 #include "ProjectOptionsManipulatorResultDlg.h"
 
 //(*InternalHeaders(ProjectOptionsManipulatorResultDlg)
@@ -32,7 +41,7 @@ ProjectOptionsManipulatorResultDlg::ProjectOptionsManipulatorResultDlg(wxWindow*
 	lblResult = new wxStaticText(this, wxID_ANY, _("Result of search:"), wxDefaultPosition, wxDefaultSize, 0, _T("wxID_ANY"));
 	bszMainV->Add(lblResult, 0, wxTOP|wxLEFT|wxRIGHT|wxEXPAND|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
 	m_TxtResult = new wxTextCtrl(this, ID_TXT_RESULT, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_MULTILINE|wxTE_READONLY, wxDefaultValidator, _T("ID_TXT_RESULT"));
-	m_TxtResult->SetMinSize(wxSize(250,150));
+	m_TxtResult->SetMinSize(wxSize(400,200));
 	bszMainV->Add(m_TxtResult, 1, wxLEFT|wxRIGHT|wxEXPAND|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
 	sbzOK = new wxStdDialogButtonSizer();
 	sbzOK->AddButton(new wxButton(this, wxID_OK, wxEmptyString));
