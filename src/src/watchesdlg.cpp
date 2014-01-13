@@ -598,9 +598,10 @@ void WatchesDlg::OnIdle(cb_unused wxIdleEvent &event)
     {
         wxPGProperty *new_prop = m_grid->Append(new WatchesProperty(wxEmptyString, wxEmptyString,
                                                                     cb::shared_ptr<cbWatch>(), false));
-        m_grid->SelectProperty(new_prop, true);
+        m_grid->SelectProperty(new_prop, false);
         m_grid->Refresh();
         m_append_empty_watch = false;
+        m_grid->BeginLabelEdit(0);
     }
 }
 
