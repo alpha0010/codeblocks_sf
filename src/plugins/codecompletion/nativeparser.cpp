@@ -2172,10 +2172,13 @@ bool NativeParser::AddCompilerPredefinedMacrosGCC(const wxString& compilerId, cb
         if (reentry)
             return false;
 
+        // Check if user set language standard version to use
+        wxString standard = GetCompilerStandardGCC(compiler, project);
+
 #ifdef __WXMSW__
-        const wxString args(_T(" -E -dM -x c++ nul"));
+        const wxString args(wxString::Format(_T(" -E -dM -x c++ %s nul"), standard.wx_str()) );
 #else
-        const wxString args(_T(" -E -dM -x c++ /dev/null"));
+        const wxString args(wxString::Format(_T(" -E -dM -x c++ %s /dev/null"), standard.wx_str()) );
 #endif
 
         wxArrayString output;
@@ -2195,41 +2198,58 @@ bool NativeParser::AddCompilerPredefinedMacrosGCC(const wxString& compilerId, cb
         wxString& gccDefs = gccDefsMap[cpp_compiler];
         for (size_t i = 0; i < output.Count(); ++i)
             gccDefs += output[i] + _T("\n");
+
+        CCLogger::Get()->DebugLog(_T("NativeParser::AddCompilerPredefinedMacrosGCC(): Caching predefined macros for compiler '")
+                                  + cpp_compiler + _T("':\n") + gccDefs);
     }
 
-    static const wxString cxx0xOption(_T("-std=c++0x"));
-    static const wxString gnu0xOption(_T("-std=gnu++0x"));
-    bool useCxx0x = false;
-    if (project)
+    defs = gccDefsMap[cpp_compiler];
+
+    return true;
+}
+
+wxString NativeParser::GetCompilerStandardGCC(Compiler* compiler, cbProject* project)
+{
+    // Check if user set language standard version to use
+    // 1.) Global compiler settings are first to search in
+    wxString standard = GetCompilerUsingStandardGCC(compiler->GetCompilerOptions());
+    if (standard.IsEmpty() && project)
     {
-        const wxArrayString& options = project->GetCompilerOptions();
-        if (   options.Index(cxx0xOption) != wxNOT_FOUND
-            || options.Index(gnu0xOption) != wxNOT_FOUND )
+        // 2.) Project compiler setting are second
+        standard = GetCompilerUsingStandardGCC(project->GetCompilerOptions());
+
+        // 3.) And targets are third in row to look for standard
+        // NOTE: If two targets use different standards, only the one we
+        //       encounter first (eg. c++98) will be used, and any other
+        //       disregarded (even if it would be c++1y)
+        if (standard.IsEmpty())
         {
-            useCxx0x = true;
-        }
-        else
-        {
-            for (int i = 0; i < project->GetBuildTargetsCount(); ++i)
+            for (int i=0; i<project->GetBuildTargetsCount(); ++i)
             {
                 ProjectBuildTarget* target = project->GetBuildTarget(i);
-                const wxArrayString& targetOptions = target->GetCompilerOptions();
-                if (   targetOptions.Index(cxx0xOption) != wxNOT_FOUND
-                    || targetOptions.Index(gnu0xOption) != wxNOT_FOUND )
-                {
-                    useCxx0x = true;
+                standard = GetCompilerUsingStandardGCC(target->GetCompilerOptions());
+
+                if (!standard.IsEmpty())
                     break;
-                }
             }
         }
     }
+    return standard;
+}
 
-    if (useCxx0x)
-        defs = gccDefsMap[cpp_compiler] + _T("#define __GXX_EXPERIMENTAL_CXX0X__ 1\n");
-    else
-        defs = gccDefsMap[cpp_compiler];
-
-    return true;
+wxString NativeParser::GetCompilerUsingStandardGCC(const wxArrayString& compilerOptions)
+{
+    wxString standard;
+    for (wxArrayString::size_type i=0; i<compilerOptions.Count(); ++i)
+    {
+        if (compilerOptions[i].StartsWith(_T("-std=")))
+        {
+            standard = compilerOptions[i];
+            CCLogger::Get()->DebugLog(wxString::Format(_T("NativeParser::GetCompilerUsingStandardGCC(): Using language standard: %s"), standard.wx_str()));
+            break;
+        }
+    }
+    return standard;
 }
 
 bool NativeParser::AddCompilerPredefinedMacrosVC(const wxString& compilerId, wxString& defs)
@@ -2444,8 +2464,9 @@ const wxArrayString& NativeParser::GetGCCCompilerDirs(const wxString &cpp_compil
         if (!fname.DirExists())
             break;
 
-        CCLogger::Get()->DebugLog(_T("NativeParser::GetGCCCompilerDirs(): Caching GCC default include dir: ") + fname.GetPath());
         dirs[cpp_compiler].Add(fname.GetPath());
+
+        CCLogger::Get()->DebugLog(_T("NativeParser::GetGCCCompilerDirs(): Caching GCC default include dir: ") + fname.GetPath());
     }
 
     TRACE(_T("NativeParser::GetGCCCompilerDirs(): Leave"));

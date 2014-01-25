@@ -1655,6 +1655,9 @@ void CompilerGCC::PrintBanner(BuildAction action, cbProject* prj, ProjectBuildTa
     case baRun:
         Action = _("Run");
         break;
+    case baBuildFile:
+        Action = _("Build file");
+        break;
     default:
     case baBuild:
         Action = _("Build");
@@ -2834,60 +2837,55 @@ bool CompilerGCC::IsRunning() const
 ProjectBuildTarget* CompilerGCC::GetBuildTargetForFile(ProjectFile* pf)
 {
     if (!pf)
-        return 0;
+        return nullptr;
 
     if (!pf->buildTargets.GetCount())
     {
         cbMessageBox(_("That file isn't assigned to any target."),
                     _("Information"), wxICON_INFORMATION);
-        return 0;
+        return nullptr;
     }
-    else if (pf->buildTargets.GetCount() == 1)
-        return m_pProject->GetBuildTarget(pf->buildTargets[0]);
-    // belongs to two or more build targets
-    ProjectBuildTarget* bt = 0;
-    // if a virtual target is selected, ask for build target
+    // If a virtual target is selected, ask for build target.
     if (m_RealTargetIndex == -1)
     {
         int idx = DoGUIAskForTarget();
         if (idx == -1)
-            return 0;
-        bt = m_pProject->GetBuildTarget(idx);
+            return nullptr;
+        return m_pProject->GetBuildTarget(idx);
     }
-    else // use the currently selected build target
-        bt = m_pProject->GetBuildTarget(m_RealTargetIndex); // pick the selected target
 
-    return bt;
-}
-
-ProjectBuildTarget* CompilerGCC::GetBuildTargetForFile(const wxString& file)
-{
-    ProjectFile* pf = m_pProject ? m_pProject->GetFileByFilename(file, true, false) : 0;
-    return GetBuildTargetForFile(pf);
+    // Use currently selected non-virtual target.
+    // If the file is not added to this target return nullptr.
+    const wxString &targetName = m_Targets[m_TargetIndex];
+    if (std::find(pf->buildTargets.begin(), pf->buildTargets.end(), targetName) == pf->buildTargets.end())
+        return nullptr;
+    return m_pProject->GetBuildTarget(targetName);
 }
 
 int CompilerGCC::CompileFile(const wxString& file)
 {
-    ProjectBuildTarget* target = NULL;
-    if ( CheckProject() )
-        target = m_pProject->GetBuildTarget(m_pProject->GetActiveBuildTarget());
-
-    DoPrepareQueue(true);
-    if ( !CompilerValid(target) )
-        return -1;
+    CheckProject();
+    DoClearErrors();
+    DoPrepareQueue(false);
 
     ProjectFile* pf = m_pProject ? m_pProject->GetFileByFilename(file, true, false) : 0;
     ProjectBuildTarget* bt = GetBuildTargetForFile(pf);
 
+    PrintBanner(baBuildFile, m_pProject, bt);
+
+    if ( !CompilerValid(bt) )
+        return -1;
     if (!pf) // compile single file not belonging to a project
         return CompileFileWithoutProject(file);
-
+    if (!bt)
+    {
+        const wxString err(_("error: Cannot find target for file"));
+        LogMessage(pf->relativeToCommonTopLevelPath + _(": ") + err, cltError);
+        LogWarningOrError(cltError, m_pProject, pf->relativeToCommonTopLevelPath, wxEmptyString, err);
+        return -2;
+    }
     if (m_pProject)
         wxSetWorkingDirectory(m_pProject->GetBasePath());
-
-    if (!bt)
-        return -2;
-
     return CompileFileDefault(m_pProject, pf, bt); // compile file using default build system
 }
 
@@ -2913,6 +2911,14 @@ int CompilerGCC::CompileFileWithoutProject(const wxString& file)
 int CompilerGCC::CompileFileDefault(cbProject* project, ProjectFile* pf, ProjectBuildTarget* bt)
 {
     Compiler* compiler = CompilerFactory::GetCompiler(bt->GetCompilerID());
+    if (!compiler)
+    {
+        const wxString &err = wxString::Format(_("error: Cannot build file for target '%s'. Compiler '%s' cannot be found!"),
+                                               bt->GetTitle().wx_str(), bt->GetCompilerID().wx_str());
+        LogMessage(pf->relativeToCommonTopLevelPath + _(": ") + err, cltError);
+        LogWarningOrError(cltError, project, pf->relativeToCommonTopLevelPath, wxEmptyString, err);
+        return -3;
+    }
 
     DirectCommands dc(this, compiler, project, m_PageIndex);
     wxArrayString compile = dc.CompileFile(bt, pf);

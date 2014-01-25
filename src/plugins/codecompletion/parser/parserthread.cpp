@@ -171,6 +171,7 @@ namespace ParserConsts
     const wxString kw_typedef      (_T("typedef"));
     const wxString kw_virtual      (_T("virtual"));
     // length: 8
+    const wxString kw_noexcept     (_T("noexcept"));
     const wxString kw_operator     (_T("operator"));
     const wxString kw_template     (_T("template"));
     const wxString kw_typename     (_T("typename"));
@@ -925,6 +926,10 @@ void ParserThread::DoParse()
                 if (m_Tokenizer.PeekToken() != ParserConsts::kw_class)
                     m_TemplateArgument.clear();
             }
+            else if (token == ParserConsts::kw_noexcept)
+            {
+                m_Str << token << _T(" ");
+            }
             else if (token == ParserConsts::kw_operator)
             {
                 TokenizerState oldState2 = m_Tokenizer.GetState();
@@ -1614,7 +1619,7 @@ void ParserThread::HandleNamespace()
     Token* tk = TokenExists(ns, nullptr, tkPreprocessor);
     if (tk && tk->m_Name != tk->m_FullType)
     {
-        if (m_Tokenizer.ReplaceBufferForReparse(tk->m_FullType))
+        if (m_Tokenizer.ReplaceBufferText(tk->m_FullType))
             ns = m_Tokenizer.GetToken();
     }
 
@@ -2107,6 +2112,7 @@ void ParserThread::HandleFunction(const wxString& name, bool isOperator)
 
         bool isImpl = false;
         bool isConst = false;
+        bool isNoExcept = false;
         while (!peek.IsEmpty()) // !eof
         {
             if (peek == ParserConsts::colon) // probably a ctor with member initializers
@@ -2129,6 +2135,8 @@ void ParserThread::HandleFunction(const wxString& name, bool isOperator)
                 break; // function decl
             else if (peek == ParserConsts::kw_const)
                 isConst = true;
+            else if (peek == ParserConsts::kw_noexcept)
+                isNoExcept = true;
             else if (peek == ParserConsts::kw_throw)
             {
                 // Handle something like: std::string MyClass::MyMethod() throw(std::exception)
@@ -2152,6 +2160,7 @@ void ParserThread::HandleFunction(const wxString& name, bool isOperator)
         if (newToken)
         {
             newToken->m_IsConst = isConst;
+            newToken->m_IsNoExcept = isNoExcept;
             newToken->m_TemplateArgument = m_TemplateArgument;
             if (!m_TemplateArgument.IsEmpty() && newToken->m_TemplateMap.empty())
                 ResolveTemplateArgs(newToken);
@@ -2760,7 +2769,7 @@ void ParserThread::HandleMacroExpansion(int id, const wxString &peek)
         DoAddToken(tkMacro, tk->m_Name, m_Tokenizer.GetLineNumber(), 0, 0, peek);
 
         if (m_Options.parseComplexMacros)
-            m_Tokenizer.ReplaceMacroActualContext(tk);
+            m_Tokenizer.ReplaceFunctionLikeMacro(tk);
     }
 }
 

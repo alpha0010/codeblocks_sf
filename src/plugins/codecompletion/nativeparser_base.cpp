@@ -1638,6 +1638,8 @@ bool NativeParserBase::PrettyPrintToken(const TokenTree*  tree,
             result = token->m_FullType + wxT(" ") + result + token->m_Name + token->GetFormattedArgs();
             if (token->m_IsConst)
                 result += wxT(" const");
+            if (token->m_IsNoExcept)
+                result += wxT(" noexcept");
             return true;
 
         case tkClass:
