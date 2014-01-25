@@ -91,9 +91,9 @@ struct ParserThreadOptions
     LoaderBase* loader; // if not NULL, load through filemanager (using threads)
 };
 
-/** @brief A parser thread
+/** @brief A parser threaded task, which can be assigned to the thread task pool, and run there
   *
-  * This class represents a worker thread for the Code Completion plug-in, the main task is doing the syntax
+  * This class represents a worker threaded task for the Code Completion plug-in, the main task is doing the syntax
   * analysis and add every token to the token tree. The Token tree (sometimes, we call it TokenTree ) is a
   * Patricia tree structure, more details can be seen in token.h and token.cpp. The buffer can  either be loaded
   * from a local file or directly used of a wxString.
@@ -321,10 +321,10 @@ private:
     wxArrayString GetTemplateArgArray(const wxString& templateArgs, bool remove_gt_lt, bool add_last);
 
     /** Split formal template argument list*/
-    void ResolveTemplateFormalArgs(const wxString& templateArgs, wxArrayString& formals);
+    void SplitTemplateFormalParameters(const wxString& templateArgs, wxArrayString& formals);
 
     /** Split actual template argument list*/
-    void ResolveTemplateActualArgs(const wxString& templateArgs, wxArrayString& actuals);
+    void SplitTemplateActualParameters(const wxString& templateArgs, wxArrayString& actuals);
 
     /** associate formal argument with actual template argument*/
     bool ResolveTemplateMap(const wxString& typeStr, const wxArrayString& actuals,
