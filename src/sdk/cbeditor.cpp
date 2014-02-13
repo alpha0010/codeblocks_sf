@@ -1106,7 +1106,6 @@ void cbEditor::Split(cbEditor::SplitType split)
         m_pControl2->IndicatorSetStyle(i, m_pControl->IndicatorGetStyle(i));
         m_pControl2->IndicatorSetUnder(i, m_pControl->IndicatorGetUnder(i));
         m_pControl2->IndicatorSetForeground(i, m_pControl->IndicatorGetForeground(i));
-
     }
 
     ConfigManager* mgr = Manager::Get()->GetConfigManager(_T("editor"));
@@ -1292,7 +1291,6 @@ void cbEditor::ApplyStyles(cbStyledTextCtrl* control)
 
     InternalSetEditorStyleBeforeFileOpen(control);
     InternalSetEditorStyleAfterFileOpen(control);
-
 }
 
 // static
@@ -3230,7 +3228,6 @@ void cbEditor::OnEditorModified(wxScintillaEvent& event)
     if ((isAdd || isDel) && linesAdded != 0)
     {
         // wheter to show line-numbers or not is handled in SetLineNumberColWidth() now
-
         m_pData->SetLineNumberColWidth();
 
         // NB: I don't think polling for each debugger every time will slow things down enough
